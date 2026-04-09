@@ -1,0 +1,1 @@
+add_executable(nr_server main.c)
