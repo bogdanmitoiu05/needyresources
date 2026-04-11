@@ -12,7 +12,7 @@
     "config": {
       "type": "object",
       "description": "Configuration information",
-      "propertyNames": {
+      "properties": {
         "workingDirectory": {
           "type": "string",
           "description": "Location where the resources are located"
