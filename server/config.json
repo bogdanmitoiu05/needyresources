@@ -1,3 +1,9 @@
 {
-  "$schema": ""
+  "$schema": "https://github.com/bogdanmitoiu05/needyresources/raw/refs/heads/main/docs/schemas/server-config.json",
+  "version": 1,
+  "config": {
+    "workingDirectory": "./resources",
+    "enableLiveUpdate": true,
+    "maximumAllowedResources": 0
+  }
 }
