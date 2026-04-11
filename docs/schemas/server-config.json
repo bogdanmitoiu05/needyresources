@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bogdanmitoiu05/needyresources/tree/main/docs/schemas/server-config.json",
+  "title": "ConfigurationFile",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "number",
+      "minimum": 1,
+      "description": "Configuration file version"
+    },
+    "config": {
+      "type": "object",
+      "description": "Configuration information",
+      "propertyNames": {
+        "workingDirectory": {
+          "type": "string",
+          "description": "Location where the resources are located"
+        },
+        "enableLiveUpdate": {
+          "type": "boolean",
+          "description": "Enable automatic update of resources"
+        },
+        "maximumAllowedResources": {
+          "type": "number",
+          "exclusiveMinimum": -1,
+          "description": "Maximum resources that will be indexed by the system. Set to 0 for no limit"
+        }
+      },
+      "required": ["workingDirectory"]
+    }
+  },
+  "required": ["version","config"]
+}

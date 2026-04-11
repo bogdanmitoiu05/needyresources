@@ -1,0 +1,9 @@
+[Unit]
+Description=Needy Resources Server
+
+[Service]
+ExecStart=/usr/bin/nr_server
+Type=exec
+
+[Install]
+WantedBy=multi-user.target
