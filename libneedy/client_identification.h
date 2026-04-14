@@ -8,15 +8,17 @@
 #include <ctype.h>
 #include <stddef.h>
 #include <unistd.h>
+#include <jansson.h>
 
 typedef struct {
     pid_t pid;
-    size_t path_size;
     char* workspace_path;
 } nr_client_identification_header;
 
 nr_client_identification_header* nr_client_identification_header_new(pid_t pid, const char* workspace_path);
+nr_client_identification_header* nr_client_identification_header_deserialize(json_t* data);
 
+json_t *nr_client_identification_header_serialize(nr_client_identification_header *this);
 void nr_client_identification_header_destroy(nr_client_identification_header* this);
 
 #endif //NEEDYRESOURCES_REQUEST_H
