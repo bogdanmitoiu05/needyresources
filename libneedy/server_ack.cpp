@@ -4,7 +4,9 @@
 
 #include "server_ack.h"
 
-__attribute_warn_unused_result__ needy_server_ack* needy_server_ack_new(const pid_t pid, const size_t response) {
+#include <string.h>
+
+__attribute_warn_unused_result__ needy_server_ack* needy_server_ack_new(const pid_t pid, size_t response) {
     needy_server_ack* res = calloc(1,sizeof(needy_server_ack));
     ENSURE_NOTNULL_MSG_RNULL(res, "Could not allocate resource_request");
     res->pid = pid;
@@ -19,7 +21,7 @@ needy_server_ack* needy_server_ack_deserialize(json_t* data) {
         return NULL;
     }
     pid_t pid = 0;
-    char* response=calloc(256,sizeof(char));
+    size_t response;
     json_error_t error;
     int success = json_unpack_ex(data, &error, JSON_STRICT, "{s:I,s:I}","pid",&pid, "response",&response);
     if (!success) {
@@ -34,7 +36,7 @@ json_t* needy_server_ack_serialize(const needy_server_ack* this) {
     ENSURE_NOTNULL_MSG_RNULL(this, "needy_client_resource_serialize: NULL pointer passed");
 
     json_error_t error;
-    json_t* result = json_pack_ex(&error, 0, "{s:I,s:I}","pid",this->pid, "requestedResources", this->response);
+    json_t* result = json_pack_ex(&error, 0, "{s:I,s:I}","pid",this->pid, "response", this->response);
     if (!result) {
         fputs("needy_client_resource_request_serialize: JSON Error",stderr);
         JSON_ERROR_PRINTF(error);

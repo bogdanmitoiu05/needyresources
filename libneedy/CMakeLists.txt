@@ -8,7 +8,7 @@ add_library(needy client_identification.c
         server_ack.h
         client_finalize.cpp
         client_finalize.h)
-target_sources(needy PUBLIC FILE_SET HEADERS TYPE HEADERS FILES needy.h client_identification.h BASE_DIRS .)
+target_sources(needy PUBLIC FILE_SET HEADERS TYPE HEADERS FILES needy.h client_identification.h resource_request.h message_type.h message.h BASE_DIRS .)
 target_compile_options(needy PUBLIC -std=c11)
 target_include_directories(needy PRIVATE private)
 target_compile_definitions(needy PUBLIC _POSIX_C_SOURCE=200809L)

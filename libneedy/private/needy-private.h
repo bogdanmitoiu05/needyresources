@@ -14,4 +14,5 @@
 #define ENSURE_NOTNULL_MSG(ptr,msg) ENSURE_NOTNULL_MSG_RETVAL(ptr,msg,;)
 #define JSON_ERROR_PRINTF(error) fprintf(stderr,"Invalid JSON.\nError at line %d, column %d, position %d\n Text: %s\n",error.line, error.column, error.position,error.text)
 
+#define NEEDY_PROTOCOL_VERSION 1
 #endif //NEEDYRESOURCES_NEEDY_PRIVATE_H

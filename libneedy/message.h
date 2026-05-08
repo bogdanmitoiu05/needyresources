@@ -25,4 +25,12 @@ typedef struct message {
     needy_message_type message_type;
     json_t *payload;
 }needy_message_t;
+
+needy_message_t* needy_message_new(needy_message_type type, json_t* payload);
+
+/**
+ * Destroys a message.
+ * @param msg message to be destroyed
+ */
+void needy_message_destroy(needy_message_t* msg);
 #endif //NEEDYRESOURCES_MESSAGE_FRAME_H
