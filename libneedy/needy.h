@@ -17,4 +17,9 @@
 #include <stdlib.h>
 #include "client_identification.h"
 #include "resource_request.h"
+#include "client_finalize.h"
+#include "message.h"
+#include "message_type.h"
+#include "server_ack.h"
+
 #endif //NEEDYRESOURCES_NEEDY_H
