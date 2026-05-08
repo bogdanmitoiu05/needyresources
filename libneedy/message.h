@@ -4,6 +4,9 @@
 
 #ifndef NEEDYRESOURCES_MESSAGE_FRAME_H
 #define NEEDYRESOURCES_MESSAGE_FRAME_H
+#include <stddef.h>
+#include <message_type.h>
+#include <jansson.h>
 // invelim fiecare mesaj in urmatoarea structura
 /**
  * ```json
@@ -17,4 +20,9 @@
  *
  * ```
  */
+typedef struct message {
+    size_t version;
+    needy_message_type message_type;
+    json_t *payload;
+}needy_message_t;
 #endif //NEEDYRESOURCES_MESSAGE_FRAME_H

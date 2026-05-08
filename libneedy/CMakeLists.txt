@@ -1,13 +1,13 @@
 add_library(needy client_identification.c
         resource_request.c
         resource_request.h
-        message_frame.c
-        message_frame.h
-        message_frame_type.h)
+        message.c
+        message.h
+        message_type.h)
 target_sources(needy PUBLIC FILE_SET HEADERS TYPE HEADERS FILES needy.h client_identification.h BASE_DIRS .)
 target_compile_options(needy PUBLIC -std=c11)
 target_include_directories(needy PRIVATE private)
-target_compile_definitions(needy PUBLIC POSIX_C_SOURCE=200809L)
+target_compile_definitions(needy PUBLIC _POSIX_C_SOURCE=200809L)
 target_compile_options(needy PUBLIC -Wall -Wextra -Wpedantic -Werror -Wno-newline-eof)
 if (${CMAKE_BUILD_TYPE} EQUAL "Debug")
     target_compile_options(needy PUBLIC -g -fsanitize=thread)
@@ -15,4 +15,4 @@ if (${CMAKE_BUILD_TYPE} EQUAL "Debug")
 else ()
     target_compile_options(needy PUBLIC -O2)
 endif ()
-target_link_libraries(needy PRIVATE Jansson)
+target_link_libraries(needy PRIVATE jansson)

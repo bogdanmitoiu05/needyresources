@@ -5,15 +5,15 @@
 #include "resource_request.h"
 
 
-__attribute_warn_unused_result__ nr_client_resource_request* nr_client_resource_request_new(const pid_t pid, const size_t requestedResources) {
-    nr_client_resource_request* res = calloc(1,sizeof(nr_client_resource_request));
+__attribute_warn_unused_result__ needy_resource_request* nr_client_resource_request_new(const pid_t pid, const size_t requestedResources) {
+    needy_resource_request* res = calloc(1,sizeof(needy_resource_request));
     ENSURE_NOTNULL_MSG_RNULL(res, "Could not allocate resource_request");
     res->pid = pid;
     res->requestedResources = requestedResources;
     return res;
 }
 
-__attribute_warn_unused_result__ nr_client_resource_request * nr_client_resource_request_deserialize(json_t *data) {
+__attribute_warn_unused_result__ needy_resource_request * nr_client_resource_request_deserialize(json_t *data) {
     ENSURE_NOTNULL_MSG_RNULL(data, "nr_client_resource_deserialize: NULL pointer passed");
     if (!json_is_object(data)) {
         fputs("nr_client_resource_deserialize: Data passed not an object",stderr);
@@ -27,11 +27,11 @@ __attribute_warn_unused_result__ nr_client_resource_request * nr_client_resource
         fputs("nr_client_resource_deserialize: invalid JSON",stderr);
         JSON_ERROR_PRINTF(error);
     }
-    nr_client_resource_request* resource_request = nr_client_resource_request_new(pid,requestedResources);
+    needy_resource_request* resource_request = nr_client_resource_request_new(pid,requestedResources);
     return resource_request;
 }
 
-__attribute_warn_unused_result__ json_t* nr_client_resource_request_serialize(const nr_client_resource_request *this) {
+__attribute_warn_unused_result__ json_t* nr_client_resource_request_serialize(const needy_resource_request *this) {
     ENSURE_NOTNULL_MSG_RNULL(this, "nr_client_resource_serialize: NULL pointer passed");
 
     json_error_t error;
@@ -43,7 +43,7 @@ __attribute_warn_unused_result__ json_t* nr_client_resource_request_serialize(co
     return result;
 }
 
-void nr_client_resource_request_destroy(nr_client_resource_request *this) {
+void nr_client_resource_request_destroy(needy_resource_request *this) {
     ENSURE_NOTNULL(this);
     free(this);
 }

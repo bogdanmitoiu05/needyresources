@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <needy.h>
-
+#include <stdbool.h>
 #include <pthread.h>
 #include <string.h>
 /**
@@ -20,7 +20,7 @@
  */
 
 volatile bool shouldQuit = false;
-void terminate_handler([[maybe_unused]] int signal) {
+void terminate_handler(__attribute_maybe_unused__ int signal) {
     shouldQuit = true;
 }
 
@@ -31,7 +31,7 @@ int main(int argc, char* const* argv)
 
     int opt;
     bool version_flag = false;
-    char* config_path = "config.json";
+    __attribute_maybe_unused__ char* config_path = strdup("config.json");
 
     bool stop_parse = false;
     while ((opt = getopt(argc, argv, "hvc:")) != -1 && !stop_parse) {
