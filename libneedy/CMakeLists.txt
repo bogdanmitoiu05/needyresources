@@ -9,7 +9,9 @@ add_library(needy client_identification.c
         client_finalize.c
         client_finalize.h
         constants.h
-        message_type.c)
+        message_type.c
+        message_queue.c
+        message_queue.h)
 target_sources(needy PUBLIC FILE_SET HEADERS TYPE HEADERS FILES needy.h client_identification.h resource_request.h message_type.h message.h BASE_DIRS .)
 target_compile_options(needy PUBLIC -std=c11)
 target_include_directories(needy PRIVATE private)
