@@ -27,6 +27,10 @@ typedef struct message {
 }needy_message_t;
 
 needy_message_t* needy_message_new(needy_message_type type, json_t* payload);
+json_t* needy_message_serialize(needy_message_t* msg);
+needy_message_t* needy_message_deserialize(json_t* msg);
+char* needy_message_to_string(needy_message_t* msg);
+needy_message_t* needy_message_from_string(char* str);
 
 /**
  * Destroys a message.
