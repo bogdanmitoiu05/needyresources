@@ -31,7 +31,7 @@ int main(int argc, char* const* argv)
 
     int opt;
     bool version_flag = false;
-    __attribute_maybe_unused__ char* config_path = strdup("config.json");
+    char* config_path = strdup("config.json");
 
     bool stop_parse = false;
     while ((opt = getopt(argc, argv, "hvc:")) != -1 && !stop_parse) {
@@ -58,7 +58,6 @@ int main(int argc, char* const* argv)
     }
 
 
-
-
+    free(config_path);
     return 0;
 }
