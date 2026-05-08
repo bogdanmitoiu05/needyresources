@@ -17,10 +17,10 @@ typedef struct {
     char* workspace_path;
 } needy_client_identification_header;
 
-needy_client_identification_header* nr_client_identification_header_new(pid_t pid, const char* workspace_path);
-needy_client_identification_header* nr_client_identification_header_deserialize(json_t* data);
+needy_client_identification_header* needy_client_identification_header_new(pid_t pid, const char* workspace_path);
+needy_client_identification_header* needy_client_identification_header_deserialize(json_t* data);
 
-json_t *nr_client_identification_header_serialize(needy_client_identification_header *this);
-void nr_client_identification_header_destroy(needy_client_identification_header* this);
+json_t *needy_client_identification_header_serialize(needy_client_identification_header *this);
+void needy_client_identification_header_destroy(needy_client_identification_header* this);
 
 #endif //NEEDYRESOURCES_REQUEST_H
