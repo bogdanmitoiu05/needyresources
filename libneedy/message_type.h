@@ -3,6 +3,7 @@
 typedef enum {
     RESOURCE_REQUEST,
     CLIENT_CONNECTION_REQUEST,
-    SERVER_ACK
+    SERVER_ACK,
+    CLIENT_FINALIZE
 } needy_message_type;
 #endif //NEEDYRESOURCES_MESSAGE_FRAME_TYPE_H
