@@ -53,7 +53,7 @@ int main(int argc, char* const* argv)
 
 
     if (version_flag) {
-        printf("Needy Resources, version %s\n.Proiect pt SO2\nProfesori coordonatori: Florin-Teodor Fortiș, Diogen Babuc\nEchipa:$Name\nMembri:\n1.Alexandru Turculeț\n2.MitBogdan Mitoiu\nTimee",SERVER_VERSION);
+        printf("Needy Resources, version %s\n.Proiect pt SO2\nVersiune protocol needy: %u\nProfesori coordonatori: Florin-Teodor Fortiș, Diogen Babuc\nEchipa:$Name\nMembri:\n1.Alexandru Turculeț\n2.Mitoiu Bogdan Mitoiu\n3.Timeea Tătărușanu",SERVER_VERSION,NEEDY_PROTOCOL_VERSION);
         exit(EXIT_SUCCESS);
     }
 

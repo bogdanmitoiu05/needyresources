@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <constants.h>
 #include <sys/shm.h>
 #include <pthread.h>
 #include <stdlib.h>
