@@ -4,9 +4,9 @@ add_library(needy client_identification.c
         message.c
         message.h
         message_type.h
-        server_ack.cpp
+        server_ack.c
         server_ack.h
-        client_finalize.cpp
+        client_finalize.c
         client_finalize.h)
 target_sources(needy PUBLIC FILE_SET HEADERS TYPE HEADERS FILES needy.h client_identification.h resource_request.h message_type.h message.h BASE_DIRS .)
 target_compile_options(needy PUBLIC -std=c11)
