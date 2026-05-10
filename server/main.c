@@ -57,6 +57,16 @@ int main(int argc, char* const* argv)
         exit(EXIT_SUCCESS);
     }
 
+    /***
+     * Vom procesa toate cereile ce vin pe coada de mesaje aferentă serverului.
+     *
+     * Când coada este goală, serverul va rula algoritmul bancherului și va onora, dacă este posibil,cererile astfel încât să nu se creeze
+     * o stare de impas. Dacă acest lucru nu este posibil, se va transmite la toate procesele că cererile nu pot fi onorate și programul se va închide.
+     */
+
+
+
+
 
     free(config_path);
     return 0;

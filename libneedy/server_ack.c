@@ -44,7 +44,7 @@ json_t* needy_server_ack_serialize(const needy_server_ack* this) {
     return result;
 }
 
-void needy_server_ack_free(needy_server_ack* this) {
+void needy_server_ack_destroy(needy_server_ack* this) {
     ENSURE_NOTNULL(this);
     free(this);
 }
