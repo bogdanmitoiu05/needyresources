@@ -4,11 +4,10 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <mqueue.h>
-#include <jansson.h>
 #include <needy.h>
 #include <stdbool.h>
 
-#define MAX_MSG_SIZE 8192
+
 
 int main(int argc, char* const* argv) {
     pid_t my_pid = getpid();

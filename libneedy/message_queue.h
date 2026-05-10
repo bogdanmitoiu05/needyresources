@@ -8,6 +8,7 @@
 #define SERVER_QUEUE_NAME "/tmp/m/needy_server_mq"
 #define PROJECT_ID 'M'
 #define QUEUE_PERMISSIONS 0660
+#define MAX_MSG_SIZE 8192
 
 void send_message(mqd_t server_mq, needy_message_t* msg);
 
