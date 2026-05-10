@@ -21,5 +21,7 @@
 #include "message_type.h"
 #include "server_ack.h"
 #include "message_queue.h"
+#include "resource_response.h"
+
 
 #endif //NEEDYRESOURCES_NEEDY_H
