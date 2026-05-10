@@ -25,6 +25,11 @@
           "type": "number",
           "exclusiveMinimum": -1,
           "description": "Maximum resources that will be indexed by the system. Set to 0 for no limit"
+        },
+        "maximumClients": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Maximum number of clients the server can support"
         }
       },
       "required": ["workingDirectory"]
