@@ -100,14 +100,11 @@ int main(int argc, char* const* argv) {
 
         needy_message_t* receivedMessage = needy_message_from_string(receive_buffer);
         if (receivedMessage) {
-
-
-
             needy_server_ack* ack = needy_server_ack_deserialize(requestMsg->payload);
 
             printf("Client [%d] received ACK from server (Response Code: %zu)\n", my_pid, ack->response);
 
-            needy_server_ack_free(ack);
+            needy_server_ack_destroy(ack);
         }
     } else {
         perror("Client: mq_receive failed");
@@ -122,7 +119,7 @@ int main(int argc, char* const* argv) {
     needy_client_finalize* finalize = needy_client_finalize_new(my_pid);
     needy_message_t* msg_fin = needy_message_new(CLIENT_FINALIZE,needy_client_finalize_serialize(finalize));
     send_message(server_mq, msg_fin);
-    needy_client_finalize_free(finalize);
+    needy_client_finalize_destroy(finalize);
 
 
     mq_close(server_mq);

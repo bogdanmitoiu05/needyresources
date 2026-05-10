@@ -37,7 +37,7 @@ json_t* needy_client_finalize_serialize(const needy_client_finalize* this) {
     }
     return result;
 }
-void needy_client_finalize_free(needy_client_finalize* this) {
+void needy_client_finalize_destroy(needy_client_finalize* this) {
     ENSURE_NOTNULL(this);
     free(this);
 }
