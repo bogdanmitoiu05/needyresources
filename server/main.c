@@ -26,8 +26,8 @@ void terminate_handler(__attribute_maybe_unused__ int signal) {
 
 int main(int argc, char* const* argv)
 {
-    signal(SIGINT, terminate_handler);
-    signal(SIGTERM, terminate_handler);
+    //signal(SIGINT, terminate_handler);
+    //signal(SIGTERM, terminate_handler);
 
     int opt;
     bool version_flag = false;
