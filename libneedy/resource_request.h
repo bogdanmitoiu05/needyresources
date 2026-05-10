@@ -4,7 +4,7 @@
 
 #ifndef NEEDYRESOURCES_RESOURCE_REQUEST_H
 #define NEEDYRESOURCES_RESOURCE_REQUEST_H
-#include "private/needy-private.h"
+#include "utils.h"
 #include <unistd.h>
 #include <jansson.h>
 #include <sys/types.h>

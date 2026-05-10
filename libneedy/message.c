@@ -4,7 +4,7 @@
 
 #include "message.h"
 
-#include "needy-private.h"
+#include "utils.h"
 #include "constants.h"
 
 needy_message_t* needy_message_new(needy_message_type type, json_t *payload) {

@@ -6,7 +6,7 @@
 #define NEEDYRESOURCES_SERVER_ACK_H
 #include <jansson.h>
 #include <unistd.h>
-#include "private/needy-private.h"
+#include "utils.h"
 
 typedef struct {
     pid_t pid;

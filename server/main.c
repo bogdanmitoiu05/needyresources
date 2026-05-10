@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <needy.h>
 #include <stdbool.h>
+#include <needy.h>
 #include <pthread.h>
 #include <string.h>
+
 /**
  * Sistemul se va baza pe o coadă de mesaje ce va conține toate cererile pt procesare
  *
@@ -18,10 +20,67 @@
  * Evident, acest lucru nu protejează împotriva unor potențiale pierderi de date dacă fișierul este șters și readăugat între momentul de actualizare a bazei de resurse și finalizarea
  * curățării.
  */
-
+//TODO
+bool safeState(void) {
+    return true;
+}
+//TODO
+bool canAssign(void) {
+    return true;
+}
 volatile bool shouldQuit = false;
 void terminate_handler(__attribute_maybe_unused__ int signal) {
     shouldQuit = true;
+}
+//TODO: read from config
+#define MAX_CLIENTI 6
+typedef struct {
+    mqd_t queues[MAX_CLIENTI];
+    int active_count;
+} MQManager;
+
+
+void mq_manager_init(MQManager *mgr) {
+    mgr->active_count = 0;
+    for (int i = 0; i < MAX_CLIENTI; i++) {
+        mgr->queues[i] = (mqd_t)-1;
+    }
+}
+
+int mq_manager_add(MQManager *mgr, mqd_t mq) {
+    if (mgr->active_count >= MAX_CLIENTI) {
+        return -1;
+    }
+
+    for (int i = 0; i < MAX_CLIENTI; i++) {
+        if (mgr->queues[i] == (mqd_t)-1) {
+            mgr->queues[i] = mq;
+            mgr->active_count++;
+            return 0;
+        }
+    }
+    return -1;
+}
+
+int mq_manager_remove(MQManager *mgr, mqd_t mq) {
+    for (int i = 0; i < MAX_CLIENTI; i++) {
+        if (mgr->queues[i] == mq) {
+            mgr->queues[i] = (mqd_t)-1;
+            mgr->active_count--;
+            return 0;
+        }
+    }
+    return -1;
+}
+
+void mq_manager_close_all(MQManager *mgr) {
+    for (int i = 0; i < MAX_CLIENTI; i++) {
+        if (mgr->queues[i] != (mqd_t)-1) {
+            mq_close(mgr->queues[i]);
+            mgr->queues[i] = (mqd_t)-1;
+        }
+    }
+    mgr->active_count = 0;
 }
 
 int main(int argc, char* const* argv)
@@ -30,6 +89,7 @@ int main(int argc, char* const* argv)
     //signal(SIGTERM, terminate_handler);
 
     int opt;
+
     bool version_flag = false;
     char* config_path = strdup("config.json");
 
@@ -63,9 +123,18 @@ int main(int argc, char* const* argv)
      * Când coada este goală, serverul va rula algoritmul bancherului și va onora, dacă este posibil,cererile astfel încât să nu se creeze
      * o stare de impas. Dacă acest lucru nu este posibil, se va transmite la toate procesele că cererile nu pot fi onorate și programul se va închide.
      */
+    struct mq_attr attr;
+    attr.mq_flags = 0;
+    attr.mq_maxmsg = 10;
+    attr.mq_msgsize = MAX_MSG_SIZE;
+    attr.mq_curmsgs = 0;
 
-
-
+    mqd_t server_mq = mq_open(SERVER_QUEUE_NAME, O_RDONLY);
+    if (server_mq == (mqd_t)-1) {
+        perror("Client: Failed to open server queue");
+        mq_unlink(SERVER_QUEUE_NAME);
+        exit(EXIT_FAILURE);
+    }
 
 
     free(config_path);

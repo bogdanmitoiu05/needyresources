@@ -1,4 +1,6 @@
-add_executable(nr_server main.c)
+add_executable(nr_server main.c
+        server_config.c
+        server_config.h)
 
 
 #find_package(Jansson)

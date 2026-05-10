@@ -5,7 +5,7 @@
 #ifndef NEEDYRESOURCES_CLIENT_FINALIZE_H
 #define NEEDYRESOURCES_CLIENT_FINALIZE_H
 #include <unistd.h>
-#include "private/needy-private.h"
+#include "utils.h"
 
 typedef struct {
     pid_t pid;

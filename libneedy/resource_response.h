@@ -5,7 +5,7 @@
 #ifndef NEEDYRESOURCES_RESOURCE_RESPONSE_H
 #define NEEDYRESOURCES_RESOURCE_RESPONSE_H
 #include <jansson.h>
-#include <private/needy-private.h>
+#include <utils.h>
 typedef enum {
     OK = 200,
     DEADLOCK = 507
