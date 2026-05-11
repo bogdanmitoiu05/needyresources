@@ -3,8 +3,6 @@ add_executable(nr_server main.c
         server_config.h)
 
 
-#find_package(Jansson)
-
 target_link_libraries(nr_server PRIVATE needy)
 target_link_libraries(nr_server PRIVATE pthread)
 
