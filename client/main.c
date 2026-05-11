@@ -23,7 +23,8 @@ int main(int argc, char* const* argv) {
     size_t id = 0;
 
     bool stop_parse = false;
-    while ((opt = getopt(argc, argv, "hvi:p:")) != -1 && !stop_parse) {
+    size_t noResources = 2;
+    while ((opt = getopt(argc, argv, "hvi:p:r:")) != -1 && !stop_parse) {
         switch (opt) {
             case 'p':
                 free(client_workspace_path);
@@ -33,6 +34,13 @@ int main(int argc, char* const* argv) {
                 id = strtol(optarg, NULL, 10);
                 if (id == 0) {
                     fputs("Invalid ID specified",stderr);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'r':
+                noResources = strtol(optarg, NULL, 10);
+                if (id == 0) {
+                    fputs("Resouruces no invalid",stderr);
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -85,7 +93,7 @@ int main(int argc, char* const* argv) {
 
 
     printf("Client [%d] requesting resources...\n", my_pid);
-    needy_resource_request* request = needy_client_resource_request_new(my_pid, 2);
+    needy_resource_request* request = needy_client_resource_request_new(my_pid, noResources);
 
     needy_message_t* requestMsg = needy_message_new(RESOURCE_REQUEST, needy_client_resource_request_serialize(request));
     send_message(server_mq, requestMsg);

@@ -4,7 +4,7 @@
 #include <needy.h>
 #include <pthread.h>
 #include <string.h>
-
+#include "server_config.h"
 /**
  * Sistemul se va baza pe o coadă de mesaje ce va conține toate cererile pt procesare
  *
@@ -32,27 +32,33 @@ volatile bool shouldQuit = false;
 void terminate_handler(__attribute_maybe_unused__ int signal) {
     shouldQuit = true;
 }
-//TODO: read from config
-#define MAX_CLIENTI 6
 typedef struct {
-    mqd_t queues[MAX_CLIENTI];
-    int active_count;
+    mqd_t* queues;
+    size_t queue_size;
+    size_t active_count;
 } MQManager;
 
 
-void mq_manager_init(MQManager *mgr) {
+MQManager* mq_manager_new(size_t size) {
+    MQManager* mgr = new(MQManager);
+    ENSURE_NOTNULL_MSG_RNULL(mgr,"mq_manager_new: could not allocate MQManager");
+    mgr->queues = calloc(size, sizeof(mqd_t));
+    mgr->queue_size = size;
+
     mgr->active_count = 0;
-    for (int i = 0; i < MAX_CLIENTI; i++) {
+    for (size_t i = 0; i < mgr->queue_size; i++) {
         mgr->queues[i] = (mqd_t)-1;
     }
+    return mgr;
 }
 
 int mq_manager_add(MQManager *mgr, mqd_t mq) {
-    if (mgr->active_count >= MAX_CLIENTI) {
+    ENSURE_NOTNULL_MSG_RETVAL(mgr, "mq_manager_add: mgr null", -1);
+    if (mgr->active_count >= mgr->queue_size) {
         return -1;
     }
 
-    for (int i = 0; i < MAX_CLIENTI; i++) {
+    for (size_t i = 0; i < mgr->queue_size; i++) {
         if (mgr->queues[i] == (mqd_t)-1) {
             mgr->queues[i] = mq;
             mgr->active_count++;
@@ -63,7 +69,8 @@ int mq_manager_add(MQManager *mgr, mqd_t mq) {
 }
 
 int mq_manager_remove(MQManager *mgr, mqd_t mq) {
-    for (int i = 0; i < MAX_CLIENTI; i++) {
+    ENSURE_NOTNULL_MSG_RETVAL(mgr, "mq_manager_remove: mgr null", -1);
+    for (size_t i = 0; i < mgr->queue_size; i++) {
         if (mgr->queues[i] == mq) {
             mgr->queues[i] = (mqd_t)-1;
             mgr->active_count--;
@@ -74,15 +81,23 @@ int mq_manager_remove(MQManager *mgr, mqd_t mq) {
 }
 
 void mq_manager_close_all(MQManager *mgr) {
-    for (int i = 0; i < MAX_CLIENTI; i++) {
+    ENSURE_NOTNULL_MSG_RETVAL(mgr, "mq_manager_close_all: mgr null",);
+    for (size_t i = 0; i < mgr->queue_size; i++) {
         if (mgr->queues[i] != (mqd_t)-1) {
             mq_close(mgr->queues[i]);
             mgr->queues[i] = (mqd_t)-1;
         }
     }
     mgr->active_count = 0;
-}
 
+}
+void mq_manager_destroy(MQManager* mgr) {
+    ENSURE_NOTNULL(mgr);
+    ENSURE_NOTNULL(mgr->queues);
+    free(mgr->queues);
+    free(mgr);
+}
+static server_config_t* conf = NULL;
 int main(int argc, char* const* argv)
 {
     //signal(SIGINT, terminate_handler);
@@ -117,6 +132,7 @@ int main(int argc, char* const* argv)
         exit(EXIT_SUCCESS);
     }
 
+    conf = load_from_file(config_path);
     /***
      * Vom procesa toate cereile ce vin pe coada de mesaje aferentă serverului.
      *
@@ -138,5 +154,6 @@ int main(int argc, char* const* argv)
 
 
     free(config_path);
+    server_config_destroy(conf);
     return 0;
 }
