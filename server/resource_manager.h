@@ -6,6 +6,11 @@
 #define NEEDYRESOURCES_RESOURCE_MANAGER_H
 #include <needy.h>
 #include <stdbool.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <needy.h>
 #include "mq_manager.h"
 typedef struct
 {
@@ -37,7 +42,7 @@ resource_manager* resource_manager_new(MQManager* manager, size_t maxResources);
 void resource_manager_destroy(resource_manager* manager);
 int resource_manager_index(resource_manager* manager, const char* working_directory);
 needy_resource_response_t* resource_manager_step(resource_manager* manager);
-int resource_manager_add_request(const needy_resource_request* request);
+int resource_manager_add_request(resource_manager* manager,const needy_resource_request* request);
 int resource_manager_release(resource_manager* manager, needy_client_finalize* finalize_request);
 
 
