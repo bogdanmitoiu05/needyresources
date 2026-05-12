@@ -18,7 +18,7 @@ client_conn* client_conn_new(needy_client_identification_header* clientInfo)
     char client_queue_name[64];
     snprintf(client_queue_name, sizeof(client_queue_name), "/needy_client_mq_%d", clientInfo->pid);
 
-    mqd_t client_queue = mq_open(client_queue_name, O_CREAT | O_RDONLY, 0644, &attr);
+    mqd_t client_queue = mq_open(client_queue_name, O_CREAT | O_WRONLY, 0644, &attr);
     if (client_queue < 0)
     {
         perror("client_conn_new could not open client pipe: ");

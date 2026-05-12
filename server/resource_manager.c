@@ -104,6 +104,7 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
     }
 
     pool->has = (size_t)count;
+    printf("--------\n\n\n%d\n\n\n",count);
     closedir(dir);
 
     return count;

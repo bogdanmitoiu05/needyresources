@@ -37,7 +37,7 @@ json_t* needy_client_finalize_serialize(const needy_client_finalize* this) {
 
     json_error_t error;
     // vom împacheta rezultatul
-    json_t* result = json_pack_ex(&error/*error handling*/, 0/*fara flags*/, "{s:I}"/*vezi mai sus*/,"pid",this->pid);
+    json_t* result = json_pack_ex(&error/*error handling*/, 0/*fara flags*/, "{s:I}"/*vezi mai sus*/,"pid",&this->pid);
     if (!result) { //error handling
         fputs("needy_client_resource_request_serialize: JSON Error",stderr);
         JSON_ERROR_PRINTF(error);

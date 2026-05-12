@@ -25,7 +25,7 @@ needy_client_identification_header * needy_client_identification_header_deserial
     ENSURE_NOTNULL_MSG_RNULL(msg, "needy_message_deserialize: could not allocate message"); // verificare instantiere
     json_error_t error; // spațiu de eroare extragere din AST
     // extrage în format strict
-    int success = json_unpack_ex(msg, &error, JSON_STRICT, "{s:I,s:s}"/*string: long_int, string:string*/, "pid",&(result->pid), "workspace_path",result->workspace_path);
+    int success = json_unpack_ex(msg, &error, JSON_STRICT, "{s:I,s:s}"/*string: long_int, string:string*/, "pid",&(result->pid), "workspace_path",&result->workspace_path);
     if (success<0) { //eroare
         JSON_ERROR_PRINTF(error);
         free(result);

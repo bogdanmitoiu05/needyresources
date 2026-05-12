@@ -4,7 +4,7 @@
 #include <string.h>
 #include "message.h"
 needy_message_type needy_message_type_from_string(const char* str) {
-    if (strcmp(str,"resource_reequest") == 0) {
+    if (strcmp(str,"resource_request") == 0) {
         return RESOURCE_REQUEST;
     }
     if (strcmp(str,"client_connection_request") == 0) {

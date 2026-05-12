@@ -127,12 +127,13 @@ int main(int argc, char* const* argv) {
     if (bytes_read >= 0) { //daca am putut receptiona mesajul
 
         needy_message_t* receivedMessage = needy_message_from_string(receive_buffer); //citeste mesajul
+        //puts(receive_buffer);
         if (receivedMessage) { //daca am putut citi mesajul
-            needy_server_ack* ack = needy_server_ack_deserialize(requestMsg->payload); //deserializaează în ack
+            needy_resource_response_t* ack = needy_resource_response_deserialize(receivedMessage->payload); //deserializaează în ack
 
-            printf("Client [%d] received ACK from server (Response Code: %zu)\n", my_pid, ack->response);
+            printf("Client [%d] received code from server (Response Code: %d)\n", my_pid, ack->code);
 
-            needy_server_ack_destroy(ack);
+            needy_resource_response_destroy(ack);
         }
     } else {
         perror("Client: mq_receive failed");

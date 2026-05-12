@@ -89,6 +89,7 @@ int main(int argc, char* const* argv)
     }
     MQManager* mq_manager = mq_manager_new(conf->maximumClients);
     resource_manager* res_manager = resource_manager_new(mq_manager, conf->maximumAllowedResources);
+    //printf(conf->workingDirectory)
     if ( resource_manager_index(res_manager, conf->workingDirectory) < 0)
     {
         goto quit;
@@ -97,18 +98,20 @@ int main(int argc, char* const* argv)
     puts("Server started");
     puts("Server is listenin");
 
-    char buffer[1024] = {0,};
-    struct timespec timeout;
-    timeout.tv_sec = 5;
-    timeout.tv_nsec = 0;
-    while (!shouldQuit && mq_manager->active_count < mq_manager->queue_size)
+    char buffer[MAX_MSG_SIZE] = {0,};
+
+    int nr=0;
+    while (!shouldQuit && mq_manager->active_count < mq_manager->queue_size && nr<3)
     {
+        struct timespec timeout;
+        clock_gettime(CLOCK_REALTIME, &timeout);
+        timeout.tv_sec += 5;
         ssize_t b_received = mq_timedreceive(server_mq, buffer, MAX_MSG_SIZE, NULL, &timeout);
         if (b_received < 0)
         {
             if (errno == ETIMEDOUT)
             {
-
+                printf("time\n");
                 errno = 0;
                 continue;
             }
@@ -117,7 +120,9 @@ int main(int argc, char* const* argv)
 
         }
         needy_message_t* message = needy_message_from_string(buffer);
-        memset(buffer, 0, 1024);
+        printf("Received message: %s\n", buffer);
+        //printf("%s\n",message->message_type);
+        memset(buffer, 0, MAX_MSG_SIZE);
         if (!message) continue;
         switch (message->message_type)
         {
@@ -127,6 +132,7 @@ int main(int argc, char* const* argv)
                 {
                     break; //eroare
                 }
+                printf("got conn req\n");
                 client_conn* new_conn = client_conn_new(header);
                 mq_manager_add(mq_manager, new_conn);
                 break;
@@ -136,15 +142,18 @@ int main(int argc, char* const* argv)
                 {
                     break;
                 }
+                printf("got res req\n");
                 resource_manager_add_request(res_manager,request);
                 needy_resource_response_t* response = resource_manager_step(res_manager);
-                needy_message_t* message = needy_message_new(RESOURSE_RESPONSE,needy_resource_response_serialize(response));
-                send_message(findByPid(mq_manager,request->pid),message);
+                needy_message_t* msg = needy_message_new(RESOURCE_RESPONSE,needy_resource_response_serialize(response));
+
+                send_message(findByPid(mq_manager,request->pid),msg);
 
                 needy_client_resource_request_destroy(request);
-
+                nr++;
                 break;
             case CLIENT_FINALIZE:;
+                printf("got fin req\n");
                 needy_client_finalize* finalizeMsg = needy_client_finalize_deserialize(message->payload);
                 if (!finalizeMsg)
                 {
