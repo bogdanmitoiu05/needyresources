@@ -101,7 +101,6 @@ int main(void) {
     pid_t server_pid = start_process(server_argv);
 
     if (server_pid < 0) {
-        mq_unlink(SERVER_QUEUE_NAME);
         return EXIT_FAILURE;
     }
 
@@ -158,7 +157,6 @@ int main(void) {
     kill(server_pid, SIGTERM);
     waitpid(server_pid, NULL, 0);
 
-    mq_unlink(SERVER_QUEUE_NAME);
 
     printf("[BOOTSTRAP] Scenario finished.\n");
 
