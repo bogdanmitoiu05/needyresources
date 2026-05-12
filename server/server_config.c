@@ -39,8 +39,8 @@ server_config_t* server_config_deserialize(json_t* json) {
     ENSURE_NOTNULL_MSG_RNULL(json, "server_config_deserialize: json is NULL")
     int version;
     json_t* obj;
-    const int success1 = json_unpack_ex(json,&error, 0, "{s:i,s:O}", "version",&version, "config", &obj);
-    if (!success1) {
+    const int success1 = json_unpack_ex(json,&error, 0, "{s:i,s:o}", "version",&version, "config", &obj);
+    if (success1 < 0) {
         JSON_ERROR_PRINTF(error);
         return NULL;
     }
@@ -58,7 +58,7 @@ server_config_t* server_config_deserialize(json_t* json) {
         "enableLiveUpdate", &(conf->liveUpdate),
         "maximumAllowedResources", &(conf->maximumAllowedResources),
         "maximumClients", &(conf->maximumClients));
-    if (!success2) {
+    if (success2 < 0) {
         JSON_ERROR_PRINTF(error);
         free(conf);
         json_decref(obj);
@@ -69,6 +69,7 @@ server_config_t* server_config_deserialize(json_t* json) {
 server_config_t * load_from_file(const char *file) {
     ENSURE_NOTNULL_MSG_RNULL(file, "load_from_file: file is NULL");
     FILE* confFd = fopen(file, "r");
+    ENSURE_NOTNULL_MSG_RNULL(confFd, "load_from_file: config file not found");
     json_error_t error;
     json_t* configFileJson = json_loadf(confFd,0, &error);
 

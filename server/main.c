@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <needy.h>
 #include <stdbool.h>
@@ -5,6 +6,7 @@
 #include <pthread.h>
 #include <string.h>
 #include "server_config.h"
+#include "mq_manager.h"
 /**
  * Sistemul se va baza pe o coadă de mesaje ce va conține toate cererile pt procesare
  *
@@ -32,76 +34,13 @@ volatile bool shouldQuit = false;
 void terminate_handler(__attribute_maybe_unused__ int signal) {
     shouldQuit = true;
 }
-typedef struct {
-    mqd_t* queues;
-    size_t queue_size;
-    size_t active_count;
-} MQManager;
 
 
-MQManager* mq_manager_new(size_t size) {
-    MQManager* mgr = new(MQManager);
-    ENSURE_NOTNULL_MSG_RNULL(mgr,"mq_manager_new: could not allocate MQManager");
-    mgr->queues = calloc(size, sizeof(mqd_t));
-    mgr->queue_size = size;
-
-    mgr->active_count = 0;
-    for (size_t i = 0; i < mgr->queue_size; i++) {
-        mgr->queues[i] = (mqd_t)-1;
-    }
-    return mgr;
-}
-
-int mq_manager_add(MQManager *mgr, mqd_t mq) {
-    ENSURE_NOTNULL_MSG_RETVAL(mgr, "mq_manager_add: mgr null", -1);
-    if (mgr->active_count >= mgr->queue_size) {
-        return -1;
-    }
-
-    for (size_t i = 0; i < mgr->queue_size; i++) {
-        if (mgr->queues[i] == (mqd_t)-1) {
-            mgr->queues[i] = mq;
-            mgr->active_count++;
-            return 0;
-        }
-    }
-    return -1;
-}
-
-int mq_manager_remove(MQManager *mgr, mqd_t mq) {
-    ENSURE_NOTNULL_MSG_RETVAL(mgr, "mq_manager_remove: mgr null", -1);
-    for (size_t i = 0; i < mgr->queue_size; i++) {
-        if (mgr->queues[i] == mq) {
-            mgr->queues[i] = (mqd_t)-1;
-            mgr->active_count--;
-            return 0;
-        }
-    }
-    return -1;
-}
-
-void mq_manager_close_all(MQManager *mgr) {
-    ENSURE_NOTNULL_MSG_RETVAL(mgr, "mq_manager_close_all: mgr null",);
-    for (size_t i = 0; i < mgr->queue_size; i++) {
-        if (mgr->queues[i] != (mqd_t)-1) {
-            mq_close(mgr->queues[i]);
-            mgr->queues[i] = (mqd_t)-1;
-        }
-    }
-    mgr->active_count = 0;
-
-}
-void mq_manager_destroy(MQManager* mgr) {
-    ENSURE_NOTNULL(mgr);
-    ENSURE_NOTNULL(mgr->queues);
-    free(mgr->queues);
-    free(mgr);
-}
 static server_config_t* conf = NULL;
 int main(int argc, char* const* argv)
 {
-    //signal(SIGINT, terminate_handler);
-    //signal(SIGTERM, terminate_handler);
+    signal(SIGINT, terminate_handler);
+    signal(SIGTERM, terminate_handler);
 
     int opt;
 
@@ -133,6 +72,10 @@ int main(int argc, char* const* argv)
     }
 
     conf = load_from_file(config_path);
+    if (conf == NULL)
+    {
+        exit(EXIT_FAILURE);
+    }
     /***
      * Vom procesa toate cereile ce vin pe coada de mesaje aferentă serverului.
      *
@@ -141,18 +84,67 @@ int main(int argc, char* const* argv)
      */
     struct mq_attr attr;
     attr.mq_flags = 0;
-    attr.mq_maxmsg = 10;
+    attr.mq_maxmsg = (long) conf->maximumClients;
     attr.mq_msgsize = MAX_MSG_SIZE;
     attr.mq_curmsgs = 0;
 
-    mqd_t server_mq = mq_open(SERVER_QUEUE_NAME, O_RDONLY);
+    mqd_t server_mq = mq_open(SERVER_QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &attr);
     if (server_mq == (mqd_t)-1) {
         perror("Client: Failed to open server queue");
         mq_unlink(SERVER_QUEUE_NAME);
         exit(EXIT_FAILURE);
     }
+    MQManager* mq_manager = mq_manager_new(conf->maximumClients);
+
+    puts("Server started");
 
 
+    char buffer[1024] = {0,};
+    struct timespec timeout;
+    timeout.tv_sec = 5;
+    while (!shouldQuit && mq_manager->active_count < mq_manager->queue_size)
+    {
+        ssize_t b_received = mq_timedreceive(server_mq, buffer, 1023, NULL, &timeout);
+        if (b_received < -1)
+        {
+            if (errno != ETIMEDOUT)
+            {
+                perror("Something went wrong while reading from message queue: ");
+                errno = 0;
+                continue;
+            }
+            break; //porneste procesarea
+
+        }
+
+        needy_message_t* message = needy_message_from_string(buffer);
+        memset(buffer, 0, 1024);
+        if (!message) continue;
+        switch (message->message_type)
+        {
+            case CLIENT_CONNECTION_REQUEST:;
+                needy_client_identification_header* header = needy_client_identification_header_deserialize(message->payload);
+                if (!header)
+                {
+                    break; //eroare
+                }
+
+                break;
+            case RESOURCE_REQUEST:;
+                break;
+            case CLIENT_FINALIZE:;
+                break;
+            default:
+                break;
+        }
+        needy_message_destroy(message);
+
+    }
+
+    puts("Server quitting");
+    mq_manager_close_all(mq_manager);
+    mq_manager_destroy(mq_manager);
+    mq_unlink(SERVER_QUEUE_NAME);
     free(config_path);
     server_config_destroy(conf);
     return 0;

@@ -1,6 +1,8 @@
 add_executable(nr_server main.c
         server_config.c
-        server_config.h)
+        server_config.h
+        mq_manager.c
+        mq_manager.h)
 
 
 target_link_libraries(nr_server PRIVATE needy)
