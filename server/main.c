@@ -7,6 +7,7 @@
 #include <string.h>
 #include "server_config.h"
 #include "mq_manager.h"
+#include "resource_manager.h"
 /**
  * Sistemul se va baza pe o coadă de mesaje ce va conține toate cererile pt procesare
  *
@@ -22,19 +23,10 @@
  * Evident, acest lucru nu protejează împotriva unor potențiale pierderi de date dacă fișierul este șters și readăugat între momentul de actualizare a bazei de resurse și finalizarea
  * curățării.
  */
-//TODO
-bool safeState(void) {
-    return true;
-}
-//TODO
-bool canAssign(void) {
-    return true;
-}
 volatile bool shouldQuit = false;
 void terminate_handler(__attribute_maybe_unused__ int signal) {
     shouldQuit = true;
 }
-
 
 static server_config_t* conf = NULL;
 int main(int argc, char* const* argv)
@@ -95,6 +87,11 @@ int main(int argc, char* const* argv)
         exit(EXIT_FAILURE);
     }
     MQManager* mq_manager = mq_manager_new(conf->maximumClients);
+    resource_manager* res_manager = resource_manager_new(mq_manager, conf->maximumAllowedResources);
+    if ( resource_manager_index(res_manager, conf->workingDirectory) < 0)
+    {
+        goto quit;
+    };
 
     puts("Server started");
 
@@ -116,7 +113,6 @@ int main(int argc, char* const* argv)
             break; //porneste procesarea
 
         }
-
         needy_message_t* message = needy_message_from_string(buffer);
         memset(buffer, 0, 1024);
         if (!message) continue;
@@ -128,20 +124,37 @@ int main(int argc, char* const* argv)
                 {
                     break; //eroare
                 }
-
+                client_conn* new_conn = client_conn_new(header);
+                mq_manager_add(mq_manager, new_conn);
                 break;
             case RESOURCE_REQUEST:;
+                needy_resource_request* request = needy_client_resource_request_deserialize(message->payload);
+                if (!request)
+                {
+                    break;
+                }
+                resource_manager_add_request(request);
+                needy_client_resource_request_destroy(request);
                 break;
             case CLIENT_FINALIZE:;
+                needy_client_finalize* finalizeMsg = needy_client_finalize_deserialize(message->payload);
+                if (!finalizeMsg)
+                {
+                    break;
+                }
+                resource_manager_release(res_manager, finalizeMsg);
+                needy_client_finalize_destroy(finalizeMsg);
                 break;
             default:
+                fputs("ERROR: Invalid message received", stderr);
                 break;
         }
         needy_message_destroy(message);
 
     }
-
+quit:
     puts("Server quitting");
+    resource_manager_destroy(res_manager);
     mq_manager_close_all(mq_manager);
     mq_manager_destroy(mq_manager);
     mq_unlink(SERVER_QUEUE_NAME);
