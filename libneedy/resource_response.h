@@ -29,8 +29,29 @@ typedef struct {
     char** resourceNames;
 } needy_resource_response_t;
 
+/**
+ * Instanțiază un nou răspuns server
+ * @param code
+ * @param noResources
+ * @param resourceNames
+ * @return
+ */
 needy_resource_response_t* needy_resource_response_new(response_code code, size_t noResources, char** resourceNames);
+/**
+ *
+ * @param this
+ * @return
+ */
 json_t* needy_resource_response_serialize(needy_resource_response_t* this);
+/**
+ *
+ * @param json
+ * @return
+ */
 needy_resource_response_t* needy_resource_response_deserialize(json_t* json);
+/**
+ *
+ * @param response
+ */
 void needy_resource_response_destroy(needy_resource_response_t* response);
 #endif //NEEDYRESOURCES_RESOURCE_RESPONSE_H
