@@ -12,7 +12,7 @@
 #define ENSURE_NOTNULL_MSG_RNULL(ptr, msg) ENSURE_NOTNULL_MSG_RETVAL(ptr,msg,NULL)
 #define ENSURE_NOTNULL_RNULL(ptr) ENSURE_NOTNULL_FULL(ptr, NULL)
 #define ENSURE_NOTNULL_MSG(ptr,msg) ENSURE_NOTNULL_MSG_RETVAL(ptr,msg,;)
-#define JSON_ERROR_PRINTF(error) fprintf(stderr,"L:%d\nInvalid JSON.\nError at line %d, column %d, position %d\n Text: %s\n",__LINE__,error.line, error.column, error.position,error.text)
+#define JSON_ERROR_PRINTF(error) fprintf(stderr,"f:%s\nInvalid JSON.\nError at line %d, column %d, position %d\n Text: %s\n",__func__,error.line, error.column, error.position,error.text)
 #define new(T) calloc(1,sizeof(T))
 
 
