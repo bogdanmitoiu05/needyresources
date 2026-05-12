@@ -88,12 +88,12 @@ int main(int argc, char* const* argv)
         exit(EXIT_FAILURE);
     }
     MQManager* mq_manager = mq_manager_new(conf->maximumClients);
-    /*resource_manager* res_manager = resource_manager_new(mq_manager, conf->maximumAllowedResources);
+    resource_manager* res_manager = resource_manager_new(mq_manager, conf->maximumAllowedResources);
     if ( resource_manager_index(res_manager, conf->workingDirectory) < 0)
     {
         goto quit;
-    };*/
-
+    }
+    //printf("hello\n");
     puts("Server started");
     puts("Server is listenin");
 
@@ -136,7 +136,7 @@ int main(int argc, char* const* argv)
                 {
                     break;
                 }
-                resource_manager_add_request(request);
+                resource_manager_add_request(res_manager,request);
                 needy_client_resource_request_destroy(request);
                 break;
             case CLIENT_FINALIZE:;
@@ -145,7 +145,7 @@ int main(int argc, char* const* argv)
                 {
                     break;
                 }
-                //resource_manager_release(res_manager, finalizeMsg);
+                resource_manager_release(res_manager, finalizeMsg);
                 needy_client_finalize_destroy(finalizeMsg);
                 break;
             default:
@@ -156,7 +156,7 @@ int main(int argc, char* const* argv)
     }
 quit:
     puts("Server quitting");
-    //resource_manager_destroy(res_manager);
+    resource_manager_destroy(res_manager);
     mq_manager_close_all(mq_manager);
     mq_manager_destroy(mq_manager);
     mq_unlink(SERVER_QUEUE_NAME);

@@ -6,7 +6,7 @@
 
 //Aici executam algoritmul bancherului efectiv
 
-#define INITIAL_RESOURCE_SLOTS 73
+#define INITIAL_RESOURCE_SLOTS 10
 
 int resource_manager_grant_resource(process_resource_information* pri, const char* resource_name)
 {
@@ -33,12 +33,15 @@ int resource_manager_grant_resource(process_resource_information* pri, const cha
 
 int resource_manager_index(resource_manager* manager, const char* working_directory)
 {
-    if (!manager || !working_directory) return -1;
+    if (!working_directory) return -1;
+
+    if (!manager) return -1;
+
 
     DIR* dir = opendir(working_directory);
     if (!dir)
     {
-        perror("resource_manager_index: opendir");
+        printf("resource_manager_index: opendir");
         return -1;
     }
 
@@ -46,7 +49,10 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
     if (!pool)
     {
         pool = calloc(1, sizeof(process_resource_information));
-        if (!pool) { closedir(dir); return -1; }
+        if (!pool) {
+            closedir(dir);
+            return -1;
+        }
         pool->individualResourceNames =calloc(INITIAL_RESOURCE_SLOTS, sizeof(char*));
         if (!pool->individualResourceNames)
         {
@@ -87,8 +93,7 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
             char** tmp = realloc(pool->individualResourceNames,
                                  new_size * sizeof(char*));
             if (!tmp) break;
-            memset(tmp + pool->individualResourcesSize, 0,
-                   (new_size - pool->individualResourcesSize) * sizeof(char*));
+            memset(tmp + pool->individualResourcesSize, 0,(new_size - pool->individualResourcesSize) * sizeof(char*));
             pool->individualResourceNames = tmp;
             pool->individualResourcesSize = new_size;
         }
@@ -106,8 +111,9 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
 
 resource_manager* resource_manager_new(MQManager* manager, size_t maxResources)
 {
-    if (!manager || maxResources == 0) return NULL;
+    //printf("poc\n");
 
+    if (!manager || maxResources == 0) return NULL;
     resource_manager* rm = calloc(1, sizeof(resource_manager));
     if (!rm) return NULL;
 
@@ -251,10 +257,110 @@ static int find_process_index(resource_manager* manager, pid_t pid)
     }
     return -1;
 }
+static int find_resource_in_process(process_resource_information* pri, const char* resource_name)
+{
+    for (size_t i = 0; i < pri->individualResourcesSize; i++)
+    {
+        if (pri->individualResourceNames[i] &&
+            strcmp(pri->individualResourceNames[i], resource_name) == 0)
+            return (int)i;
+    }
+    return -1;
+}
+
 
 int resource_manager_add_request(resource_manager* manager, const needy_resource_request* request)
 {
+    if (!request || !manager) return -1;
 
+    pid_t pid = request->pid;
+    size_t wanted   = request->requestedResources;
+    int idx   = find_process_index(manager, pid);
+
+    if (idx < 0)
+    {
+        size_t slot = 0;
+        for (size_t i = 1; i < manager->process_count; i++)
+        {
+            if (!manager->process_resources[i]) {
+                slot = i; break;
+            }
+        }
+        if (slot == 0)
+        {
+            slot = manager->process_count;
+            manager->process_count++;
+        }
+
+        process_resource_information* pri = calloc(1, sizeof(process_resource_information));
+        if (!pri) return -1;
+
+        pri->individualResourceNames = calloc(INITIAL_RESOURCE_SLOTS, sizeof(char*));
+        if (!pri->individualResourceNames) {
+            free(pri);
+            return -1;
+        }
+
+        pri->individualResourcesSize = INITIAL_RESOURCE_SLOTS;
+        pri->pid   = pid;
+        pri->has   = 0;
+        pri->needs = 0;
+
+        manager->process_resources[slot] = pri;
+        manager->active_process_count++;
+        idx = (int)slot;
+    }
+
+    process_resource_information* pri = manager->process_resources[idx];
+    process_resource_information* pool = manager->process_resources[0];
+
+    size_t assigned = 0;
+
+    if (pool)
+    {
+        for (size_t p = 0;
+             p < pool->individualResourcesSize && assigned < wanted;
+             p++)
+        {
+            if (!pool->individualResourceNames[p]) continue;
+
+            const char* rname = pool->individualResourceNames[p];
+
+            if (find_resource_in_process(pri, rname) >= 0) continue;
+
+            size_t free_slot = pri->individualResourcesSize;
+            for (size_t j = 0; j < pri->individualResourcesSize; j++)
+            {
+                if (!pri->individualResourceNames[j]) { free_slot = j; break; }
+            }
+
+            if (free_slot == pri->individualResourcesSize)
+            {
+                size_t new_size = pri->individualResourcesSize * 2;
+                char** tmp = realloc(pri->individualResourceNames,
+                                     new_size * sizeof(char*));
+                if (!tmp) break;
+                memset(tmp + pri->individualResourcesSize, 0,
+                       (new_size - pri->individualResourcesSize) * sizeof(char*));
+                pri->individualResourceNames    = tmp;
+                pri->individualResourcesSize    = new_size;
+            }
+
+            pri->individualResourceNames[free_slot] = strdup(pool->individualResourceNames[p]);
+
+            free(pool->individualResourceNames[p]);
+            pool->individualResourceNames[p] = NULL;
+            if (pool->has > 0)
+                pool->has--;
+
+            assigned++;
+        }
+    }
+
+
+    pri->needs += assigned;
+
+    return 0;
 }
 
 
