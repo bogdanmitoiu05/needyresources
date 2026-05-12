@@ -103,7 +103,7 @@ int main(int argc, char* const* argv)
     timeout.tv_nsec = 0;
     while (!shouldQuit && mq_manager->active_count < mq_manager->queue_size)
     {
-        ssize_t b_received = mq_timedreceive(server_mq, buffer, 1023, NULL, &timeout);
+        ssize_t b_received = mq_timedreceive(server_mq, buffer, MAX_MSG_SIZE, NULL, &timeout);
         if (b_received < 0)
         {
             if (errno != ETIMEDOUT)
