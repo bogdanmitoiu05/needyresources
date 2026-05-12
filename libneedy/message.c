@@ -68,7 +68,7 @@ needy_message_t* needy_message_from_string(char* str) {
         JSON_ERROR_PRINTF(error);
         return NULL;
     }
-    return needy_message_deserialize(msgJson); //returnea
+    return needy_message_deserialize(msgJson); //returnează me
 }
 void needy_message_destroy(needy_message_t *msg) {
     ENSURE_NOTNULL(msg);
