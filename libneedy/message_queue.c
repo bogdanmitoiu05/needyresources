@@ -14,7 +14,7 @@ void send_message(mqd_t server_mq, needy_message_t* msg)
         perror("Client: mq_send failed"); //error handling
     }
 
-    //cleanu
+    //cleanup
     free(buffer);
     //needy_message_destroy(msg);
 }
