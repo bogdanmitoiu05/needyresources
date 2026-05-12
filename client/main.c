@@ -80,6 +80,7 @@ int main(int argc, char* const* argv) {
     attr.mq_maxmsg = 10;
     attr.mq_msgsize = MAX_MSG_SIZE;
     attr.mq_curmsgs = 0;
+    mq_unlink(client_queue_name);
 
     mqd_t client_mq = mq_open(client_queue_name, O_CREAT | O_RDONLY, 0644, &attr); //pe aici va răspunde serverul
     if (client_mq == (mqd_t)-1) { //dacă nu am reușit să creem coada

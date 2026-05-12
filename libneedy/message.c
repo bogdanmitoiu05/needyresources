@@ -34,6 +34,7 @@ json_t * needy_message_serialize(needy_message_t *msg) {
         fprintf(stderr,"Invalid protocol version %lu. Protocol version %lu needed", msg->version, (size_t) NEEDY_PROTOCOL_VERSION);
         return NULL;
     }
+    puts(needy_message_type_to_string(msg->message_type));
     // împachetare mesaj conform structurii din message.h
     json_t* result = json_pack("{s:I,s:s,s:O}"/*„O” indică faptul că obiectului i se va incrementa usage counterul*/,"version",msg->version,"type",needy_message_type_to_string(msg->message_type)/*obține stringul asociat valorii message type*/,"payload",msg->payload);
     ENSURE_NOTNULL_MSG_RNULL(result, "needy_message_serialize: Failed to serialize message"); //verificare eroare

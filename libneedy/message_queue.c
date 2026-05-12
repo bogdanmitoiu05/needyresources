@@ -16,5 +16,5 @@ void send_message(mqd_t server_mq, needy_message_t* msg)
 
     //cleanu
     free(buffer);
-    needy_message_destroy(msg);
+    //needy_message_destroy(msg);
 }
