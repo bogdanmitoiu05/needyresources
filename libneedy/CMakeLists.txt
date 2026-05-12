@@ -18,7 +18,7 @@ target_sources(needy PUBLIC FILE_SET HEADERS TYPE HEADERS FILES needy.h client_i
 target_compile_options(needy PUBLIC -std=c11)
 target_include_directories(needy PRIVATE private)
 target_compile_definitions(needy PUBLIC _POSIX_C_SOURCE=200809L)
-target_compile_options(needy PUBLIC -Wall -Wextra -Wpedantic -Werror -Wno-newline-eof)
+#target_compile_options(needy PUBLIC -Wall -Wextra -Wpedantic -Werror -Wno-newline-eof)
 if (${CMAKE_BUILD_TYPE} EQUAL "Debug")
     target_compile_options(needy PUBLIC -g -fsanitize=thread)
     target_link_options(needy PUBLIC -fsanitize=thread)

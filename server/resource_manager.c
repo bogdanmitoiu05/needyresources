@@ -9,11 +9,12 @@
 int resource_manager_grant_resource(process_resource_information* pri, const char* resource_name)
 {
     //symlink
+    return -1;
 }
 
 int resource_manager_index(resource_manager* manager, const char* working_directory)
 {
-
+    //retur
 }
 resource_manager* resource_manager_new(MQManager* manager, size_t maxResources)
 {
