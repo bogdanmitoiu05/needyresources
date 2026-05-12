@@ -48,10 +48,9 @@ server_config_t* server_config_deserialize(json_t* json) {
     server_config_t* conf = new(server_config_t);
     if (!conf) {
         fputs("load_from_file: could not allocate config object",stderr);
-        json_decref(json);
+        //json_decref(json);
         return NULL;
     }
-
 
     const int success2 = json_unpack_ex(obj, &error, 0, "{s:s,s:b,s:i,s:i}",
         "workingDirectory", &(conf->workingDirectory),
@@ -61,9 +60,10 @@ server_config_t* server_config_deserialize(json_t* json) {
     if (success2 < 0) {
         JSON_ERROR_PRINTF(error);
         free(conf);
-        json_decref(obj);
+        //json_decref(obj);
         return NULL;
     }
+
     return conf;
 }
 server_config_t * load_from_file(const char *file) {
@@ -79,7 +79,8 @@ server_config_t * load_from_file(const char *file) {
         return NULL;
     }
     fclose(confFd);
-    return server_config_deserialize(configFileJson);
+    server_config_t* conf = server_config_deserialize(configFileJson);
+    return conf;
 }
 
 

@@ -68,6 +68,6 @@ needy_message_t* needy_message_from_string(char* str) {
 void needy_message_destroy(needy_message_t *msg) {
     ENSURE_NOTNULL(msg);
     if (msg->payload)
-        json_decref(msg->payload);
+        //json_decref(msg->payload);
     free(msg);
 }

@@ -88,11 +88,11 @@ int main(int argc, char* const* argv)
         exit(EXIT_FAILURE);
     }
     MQManager* mq_manager = mq_manager_new(conf->maximumClients);
-    resource_manager* res_manager = resource_manager_new(mq_manager, conf->maximumAllowedResources);
+    /*resource_manager* res_manager = resource_manager_new(mq_manager, conf->maximumAllowedResources);
     if ( resource_manager_index(res_manager, conf->workingDirectory) < 0)
     {
         goto quit;
-    };
+    };*/
 
     puts("Server started");
 
@@ -100,6 +100,7 @@ int main(int argc, char* const* argv)
     char buffer[1024] = {0,};
     struct timespec timeout;
     timeout.tv_sec = 5;
+    timeout.tv_nsec = 0;
     while (!shouldQuit && mq_manager->active_count < mq_manager->queue_size)
     {
         ssize_t b_received = mq_timedreceive(server_mq, buffer, 1023, NULL, &timeout);
@@ -143,7 +144,7 @@ int main(int argc, char* const* argv)
                 {
                     break;
                 }
-                resource_manager_release(res_manager, finalizeMsg);
+                //resource_manager_release(res_manager, finalizeMsg);
                 needy_client_finalize_destroy(finalizeMsg);
                 break;
             default:
@@ -154,7 +155,7 @@ int main(int argc, char* const* argv)
     }
 quit:
     puts("Server quitting");
-    resource_manager_destroy(res_manager);
+    //resource_manager_destroy(res_manager);
     mq_manager_close_all(mq_manager);
     mq_manager_destroy(mq_manager);
     mq_unlink(SERVER_QUEUE_NAME);

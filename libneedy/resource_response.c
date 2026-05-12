@@ -63,9 +63,9 @@ needy_resource_response_t * needy_resource_response_deserialize(json_t *json) {
         names[i] = calloc(json_string_length(currString)+1, sizeof(char));
         ENSURE_NOTNULL_MSG_RNULL(names[i], "needy_resource_response_deserialize: could not allocate string")
         strcpy(names[i],json_string_value(currString));
-        json_decref(currString);
+        //json_decref(currString);
     }
-    json_decref(arrayObject);
+    //json_decref(arrayObject);
 
     resource_response->resourceNames = names;
     return resource_response;
