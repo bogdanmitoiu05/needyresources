@@ -95,7 +95,7 @@ int main(int argc, char* const* argv)
     };*/
 
     puts("Server started");
-    puts("Server is list")
+    puts("Server is listenin");
 
     char buffer[1024] = {0,};
     struct timespec timeout;
