@@ -37,13 +37,14 @@ int main(int argc, char* const* argv)
     int opt;
 
     bool version_flag = false;
-    char* config_path = strdup("config.json");
+    char* config_path = calloc(64, sizeof(char));
+    strcpy(config_path, "config.json");
 
     bool stop_parse = false;
     while ((opt = getopt(argc, argv, "hvc:")) != -1 && !stop_parse) {
         switch (opt) {
             case 'c':
-                config_path = strdup(optarg);
+                strcpy(config_path, optarg);
                 break;
             case 'v':
                 version_flag = true;
@@ -150,7 +151,6 @@ int main(int argc, char* const* argv)
                 break;
         }
         needy_message_destroy(message);
-
     }
 quit:
     puts("Server quitting");
