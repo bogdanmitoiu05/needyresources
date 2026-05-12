@@ -63,4 +63,6 @@ needy_message_t* needy_message_from_string(char* str);
  * @param msg Mesajul ce trebuie distrus
  */
 void needy_message_destroy(needy_message_t* msg);
+
+char* fixed_strdup(const char* in);
 #endif //NEEDYRESOURCES_MESSAGE_FRAME_H

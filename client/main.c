@@ -36,7 +36,7 @@ int main(int argc, char* const* argv) {
         switch (opt) {
             case 'p': //calea către workspace
                 free(client_workspace_path);
-                client_workspace_path = strdup(optarg);
+                client_workspace_path = fixed_strdup(optarg);
                 break;
             case 'i': //id
                 id = strtol(optarg, NULL, 10); //conversie în baza 10

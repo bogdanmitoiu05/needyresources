@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "message.h"
 needy_message_type needy_message_type_from_string(const char* str) {
     if (strcmp(str,"resource_reequest") == 0) {
         return RESOURCE_REQUEST;
@@ -20,13 +21,13 @@ needy_message_type needy_message_type_from_string(const char* str) {
 char* needy_message_type_to_string(needy_message_type type) {
     switch (type) {
         case RESOURCE_REQUEST:
-            return strdup("resource_request");
+            return fixed_strdup("resource_request");
         case CLIENT_CONNECTION_REQUEST:
-            return strdup("client_connection_request");
+            return fixed_strdup("client_connection_request");
         case SERVER_ACK:
-            return strdup("server_ack");
+            return fixed_strdup("server_ack");
         case CLIENT_FINALIZE:
-            return strdup("client_finalize");
+            return fixed_strdup("client_finalize");
         default:
             fputs("needy_message_type_to_string: Invalid type", stderr);
             return NULL;

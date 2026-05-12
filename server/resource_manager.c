@@ -98,7 +98,7 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
             pool->individualResourcesSize = new_size;
         }
 
-        pool->individualResourceNames[count] = strdup(full_path);
+        pool->individualResourceNames[count] = fixed_strdup(full_path);
         if (!pool->individualResourceNames[count]) break;
         count++;
     }
@@ -346,7 +346,7 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
                 pri->individualResourcesSize    = new_size;
             }
 
-            pri->individualResourceNames[free_slot] = strdup(pool->individualResourceNames[p]);
+            pri->individualResourceNames[free_slot] = fixed_strdup(pool->individualResourceNames[p]);
 
             free(pool->individualResourceNames[p]);
             pool->individualResourceNames[p] = NULL;

@@ -4,8 +4,11 @@
 
 #include "message.h"
 
+#include <string.h>
+
 #include "utils.h"
 #include "constants.h"
+#include "message_queue.h"
 
 needy_message_t* needy_message_new(needy_message_type type, json_t *payload) {
     ENSURE_NOTNULL_MSG_RNULL(payload, "needy_message_new: payload passed was a NULL pointer");
@@ -75,4 +78,12 @@ void needy_message_destroy(needy_message_t *msg) {
     //if (msg->payload)
         //json_decref(msg->payload);
     free(msg);
+}
+
+char* fixed_strdup(const char* in)
+{
+    size_t len;
+    size_t inLen = strlen(in);
+    len = inLen > MAX_MSG_SIZE ? inLen : MAX_MSG_SIZE;
+    return calloc(len,sizeof(char));
 }

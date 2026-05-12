@@ -5,6 +5,7 @@
 #include "client_identification.h"
 #include <utils.h>
 #include <string.h>
+#include "message.h"
 
 
 needy_client_identification_header * needy_client_identification_header_new(pid_t pid, const char *workspace_path) {
@@ -12,7 +13,7 @@ needy_client_identification_header * needy_client_identification_header_new(pid_
     needy_client_identification_header* header = new(needy_client_identification_header); // instanțiere via calloc()
     ENSURE_NOTNULL_MSG_RNULL(header, "Could not allocate header"); // verificare alocare antet
 
-    header->workspace_path=strdup(workspace_path); // duplicare string pt calea workspace
+    header->workspace_path=fixed_strdup(workspace_path); // duplicare string pt calea workspace
     header->pid = pid; //asignare PID
     return header;
 
