@@ -95,7 +95,7 @@ int main(int argc, char* const* argv)
     };*/
 
     puts("Server started");
-
+    puts("Server is list")
 
     char buffer[1024] = {0,};
     struct timespec timeout;
@@ -106,12 +106,13 @@ int main(int argc, char* const* argv)
         ssize_t b_received = mq_timedreceive(server_mq, buffer, MAX_MSG_SIZE, NULL, &timeout);
         if (b_received < 0)
         {
-            if (errno != ETIMEDOUT)
+            if (errno == ETIMEDOUT)
             {
-                perror("Something went wrong while reading from message queue: ");
+
                 errno = 0;
                 continue;
             }
+            perror("Something went wrong while reading from message queue: ");
             break; //porneste procesarea
 
         }
