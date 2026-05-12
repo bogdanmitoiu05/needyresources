@@ -46,7 +46,7 @@ needy_message_t * needy_message_deserialize(json_t *msg) {
     ENSURE_NOTNULL_MSG_RNULL(msg, "needy_message_deserialize: could not allocate message");
     json_error_t error; // pregatire despachetare
     const char* type = NULL; //vezi mai sus
-    int success = json_unpack_ex(msg, &error, JSON_STRICT, "{s:I,s:s,s:O}", "version",&(result->version), "type",type, "payload",&(result->payload));
+    int success = json_unpack_ex(msg, &error, JSON_STRICT, "{s:I,s:s,s:O}", "version",&(result->version), "type",needy_message_type_from_string(type), "payload",&(result->payload));
     if (success<0) {
         JSON_ERROR_PRINTF(error);
         free(result);
