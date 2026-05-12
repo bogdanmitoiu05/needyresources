@@ -137,7 +137,12 @@ int main(int argc, char* const* argv)
                     break;
                 }
                 resource_manager_add_request(res_manager,request);
+                needy_resource_response_t* response = resource_manager_step(res_manager);
+                needy_message_t* message = needy_message_new(RESOURSE_RESPONSE,needy_resource_response_serialize(response));
+                send_message(findByPid(mq_manager,request->pid),message);
+
                 needy_client_resource_request_destroy(request);
+
                 break;
             case CLIENT_FINALIZE:;
                 needy_client_finalize* finalizeMsg = needy_client_finalize_deserialize(message->payload);
@@ -154,6 +159,7 @@ int main(int argc, char* const* argv)
         }
         needy_message_destroy(message);
     }
+
 quit:
     puts("Server quitting");
     resource_manager_destroy(res_manager);

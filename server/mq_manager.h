@@ -17,6 +17,7 @@ typedef struct {
     size_t active_count;
 } MQManager;
 
+mqd_t findByPid(MQManager* mgr,pid_t pid);
 client_conn* client_conn_new(needy_client_identification_header* clientInfo);
 void client_conn_destroy(client_conn* conn);
 MQManager* mq_manager_new(size_t size);

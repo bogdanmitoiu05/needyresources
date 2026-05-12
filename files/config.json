@@ -4,7 +4,7 @@
   "config": {
     "workingDirectory": "/IdeaProjects/needyresources/files/resources",
     "enableLiveUpdate": true,
-    "maximumAllowedResources": 10,
+    "maximumAllowedResources": 12,
     "maximumClients": 6
   }
 }

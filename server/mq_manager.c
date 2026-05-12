@@ -28,6 +28,13 @@ client_conn* client_conn_new(needy_client_identification_header* clientInfo)
     cConn->clientInfo = clientInfo;
     return cConn;
 }
+mqd_t findByPid(MQManager* mgr,pid_t pid) {
+    for (size_t i = 0; i < mgr->queue_size; i++) {
+        if (mgr->queues[i]->clientInfo->pid==pid) {
+            return mgr->queues[i]->queue;
+        }
+    }
+}
 void client_conn_destroy(client_conn* conn)
 {
     ENSURE_NOTNULL(conn);

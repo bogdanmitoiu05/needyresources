@@ -2,6 +2,7 @@
 #define NEEDYRESOURCES_MESSAGE_FRAME_TYPE_H
 typedef enum {
     RESOURCE_REQUEST, //cerere resurse
+    RESOURCE_RESPONSE, //raspun
     CLIENT_CONNECTION_REQUEST, // cerere conectare
     SERVER_ACK, // ack conectare
     CLIENT_FINALIZE, // clientul a terminat
