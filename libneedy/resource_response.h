@@ -1,7 +1,19 @@
 //
 // Created by vscode on 5/10/26.
 //
-
+/**
+*  * ```json
+ * {
+ *      "response_code": $code,
+ *      "resource_count": $count,
+ *      "resources": [
+ *          "./res1",
+ *          "./res2"
+ *       ]
+ * }
+ *
+ * ```
+ */
 #ifndef NEEDYRESOURCES_RESOURCE_RESPONSE_H
 #define NEEDYRESOURCES_RESOURCE_RESPONSE_H
 #include <jansson.h>

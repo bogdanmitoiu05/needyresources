@@ -2,10 +2,10 @@
 #define NEEDYRESOURCES_MESSAGE_FRAME_TYPE_H
 typedef enum {
     RESOURCE_REQUEST, //cerere resurse
-    RESOURCE_RESPONSE, //raspun
     CLIENT_CONNECTION_REQUEST, // cerere conectare
     SERVER_ACK, // ack conectare
     CLIENT_FINALIZE, // clientul a terminat
+    RESOURCE_RESPONSE,
     N_TYPES, //truc -> valoarea se va actualiza automat în funcție de câte valori sunt înaintea sa
     MESSAGE_TYPE_UNKNOWN // -> invalid
 } needy_message_type;
