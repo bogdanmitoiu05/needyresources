@@ -23,7 +23,7 @@ __attribute_warn_unused_result__ needy_resource_request * needy_client_resource_
     size_t requestedResources = 0;
     json_error_t error;
     int success = json_unpack_ex(data, &error, JSON_STRICT, "{s:I,s:I}","pid",&pid, "requestedResources",&requestedResources);
-    if (!success) {
+    if (success<0) {
         fputs("needy_client_resource_deserialize: invalid JSON",stderr);
         JSON_ERROR_PRINTF(error);
     }

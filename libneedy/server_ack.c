@@ -24,7 +24,7 @@ needy_server_ack* needy_server_ack_deserialize(json_t* data) {
     size_t response;
     json_error_t error;
     int success = json_unpack_ex(data, &error, JSON_STRICT, "{s:I,s:I}","pid",&pid, "response",&response);
-    if (!success) {
+    if (success<0) {
         fputs("needy_client_resource_deserialize: invalid JSON",stderr);
         JSON_ERROR_PRINTF(error);
     }

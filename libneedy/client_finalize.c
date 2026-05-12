@@ -19,7 +19,7 @@ needy_client_finalize* needy_client_finalize_deserialize(json_t* data) {
     pid_t pid = 0;
     json_error_t error;
     int success = json_unpack_ex(data, &error, JSON_STRICT, "{s:I}","pid",&pid);
-    if (!success) {
+    if (success<0) {
         fputs("needy_client_resource_deserialize: invalid JSON",stderr);
         JSON_ERROR_PRINTF(error);
     }

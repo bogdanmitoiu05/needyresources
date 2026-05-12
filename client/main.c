@@ -119,10 +119,10 @@ int main(int argc, char* const* argv) {
 
     // simulam
     // --- to be  changed ---
-    printf("Client %d holding resources. Processing for 10 seconds...\n", my_pid);
+    printf("Client [%d] holding resources. Processing for 10 seconds...\n", my_pid);
     sleep(10);
 
-    printf("Client %d processing complete. Releasing resources...\n", my_pid);
+    printf("Client [%d] processing complete. Releasing resources...\n", my_pid);
     needy_client_finalize* finalize = needy_client_finalize_new(my_pid);
     needy_message_t* msg_fin = needy_message_new(CLIENT_FINALIZE,needy_client_finalize_serialize(finalize));
     send_message(server_mq, msg_fin);
