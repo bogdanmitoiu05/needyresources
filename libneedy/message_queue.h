@@ -10,6 +10,11 @@
 #define QUEUE_PERMISSIONS 0660
 #define MAX_MSG_SIZE 8192
 
+/**
+ * Funcție helper pentru a trimite mesaje. Execută transformarea în string din AST-ul JSON și curățarea bufferului temporar
+ * @param server_mq coada de transmisie
+ * @param msg mesajul de transmis
+ */
 void send_message(mqd_t server_mq, needy_message_t* msg);
 
 #endif //NEEDYRESOURCES_MESSAGE_QUEUE_H

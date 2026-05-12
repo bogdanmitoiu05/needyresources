@@ -4,5 +4,5 @@
 
 #ifndef NEEDYRESOURCES_CONSTANTS_H
 #define NEEDYRESOURCES_CONSTANTS_H
-#define NEEDY_PROTOCOL_VERSION 1
+#define NEEDY_PROTOCOL_VERSION 1 //versiunea protocol needy. Utilă pentru a determina dacă aplicațiile sunt compatibile între ele
 #endif //NEEDYRESOURCES_CONSTANTS_H
