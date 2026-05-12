@@ -29,6 +29,27 @@ int resource_manager_grant_resource(process_resource_information* pri, const cha
     pri->has++;
     return 0;
 }
+static int find_process_index(resource_manager* manager, pid_t pid)
+{
+    for (size_t i = 0; i < manager->process_count; i++)
+    {
+        if (manager->process_resources[i] &&
+            manager->process_resources[i]->pid == pid)
+            return (int)i;
+    }
+    return -1;
+}
+static int find_resource_in_process(process_resource_information* pri, const char* resource_name)
+{
+    for (size_t i = 0; i < pri->individualResourcesSize; i++)
+    {
+        if (pri->individualResourceNames[i] &&
+            strcmp(pri->individualResourceNames[i], resource_name) == 0)
+            return (int)i;
+    }
+    return -1;
+}
+
 
 
 int resource_manager_index(resource_manager* manager, const char* working_directory)
@@ -104,7 +125,7 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
     }
 
     pool->has = (size_t)count;
-    printf("--------\n\n\n%d\n\n\n",count);
+    //printf("--------\n\n\n%d\n\n\n",count);
     closedir(dir);
 
     return count;
@@ -155,7 +176,6 @@ void resource_manager_destroy(resource_manager* manager)
     free(manager);
 
 }
-
 needy_resource_response_t* resource_manager_step(resource_manager* manager)
 {
     if (!manager) return NULL;
@@ -166,17 +186,26 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
     process_resource_information* pool = manager->process_resources[0];
     if (!pool) return NULL;
 
-    size_t allocated = 0;
+    process_resource_information* target = NULL;
     for (size_t i = 1; i < n; i++)
     {
-        if (manager->process_resources[i])
-            allocated += manager->process_resources[i]->has;
+        process_resource_information* p = manager->process_resources[i];
+        if (p && p->needs > 0 && pool->has >= p->needs) {
+            target = p;
+            break;
+        }
     }
-    size_t work = (pool->has >= allocated) ? pool->has - allocated : 0;
+
+    if (!target) return NULL;
+
+    size_t work = pool->has - target->needs;
 
     bool* finish = calloc(n, sizeof(bool));
     if (!finish) return NULL;
     finish[0] = true;
+
+    finish[find_process_index(manager, target->pid)] = true;
+    work += (target->has + target->needs);
 
     bool changed = true;
     while (changed)
@@ -186,6 +215,7 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
         {
             process_resource_information* p = manager->process_resources[i];
             if (!p || finish[i]) continue;
+
             if (p->needs <= work)
             {
                 finish[i] = true;
@@ -195,78 +225,64 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
         }
     }
 
-
     bool safe = true;
-    for (size_t i = 1; i < n; i++)
-    {
+    for (size_t i = 1; i < n; i++) {
         if (!finish[i]) { safe = false; break; }
     }
     free(finish);
 
-    process_resource_information* target = NULL;
-    for (size_t i = 1; i < n; i++)
-    {
-        process_resource_information* p = manager->process_resources[i];
-        if (p && p->needs > 0) { target = p; break; }
-    }
-
-    if (!target) return NULL;
-
     needy_resource_response_t* response = calloc(1, sizeof(needy_resource_response_t));
     if (!response) return NULL;
 
-
-    if (safe && pool->has > allocated)
+    if (safe)
     {
-        process_resource_information* pool_entry = manager->process_resources[0];
-        const char* resource_to_grant = NULL;
-        for (size_t j = 0; j < pool_entry->individualResourcesSize; j++)
-        {
-            if (pool_entry->individualResourceNames[j])
-            {
-                resource_to_grant = pool_entry->individualResourceNames[j];
-                break;
-            }
-        }
+        response->code = OK;
+        response->noResources = target->needs;
+        response->resourceNames = calloc(target->needs, sizeof(char*));
 
-        if (resource_to_grant &&
-            resource_manager_grant_resource(target, resource_to_grant) == 0)
+        size_t granted = 0;
+        size_t needed = target->needs;
+
+        for (size_t p = 0; p < pool->individualResourcesSize && granted < needed; p++)
         {
-            response->code = OK;
+            if (!pool->individualResourceNames[p]) continue;
+
+            char* rname = pool->individualResourceNames[p];
+
+            size_t free_slot = target->individualResourcesSize;
+            for (size_t j = 0; j < target->individualResourcesSize; j++) {
+                if (!target->individualResourceNames[j]) { free_slot = j; break; }
+            }
+
+            if (free_slot == target->individualResourcesSize)
+            {
+                size_t new_size = target->individualResourcesSize * 2;
+                char** tmp = realloc(target->individualResourceNames, new_size * sizeof(char*));
+                memset(tmp + target->individualResourcesSize, 0, (new_size - target->individualResourcesSize) * sizeof(char*));
+                target->individualResourceNames = tmp;
+                target->individualResourcesSize = new_size;
+            }
+
+            target->individualResourceNames[free_slot] = rname;
+            pool->individualResourceNames[p] = NULL;
+            pool->has--;
+
+            response->resourceNames[granted] = strdup(rname);
+
+            resource_manager_grant_resource(target, rname);
+
             target->needs--;
-        }
-        else
-        {
-            response->code = DEADLOCK;
+            granted++;
         }
     }
     else
     {
         response->code = DEADLOCK;
+        response->noResources = 0;
+        response->resourceNames = NULL;
     }
 
     return response;
-}
-
-static int find_process_index(resource_manager* manager, pid_t pid)
-{
-    for (size_t i = 0; i < manager->process_count; i++)
-    {
-        if (manager->process_resources[i] &&
-            manager->process_resources[i]->pid == pid)
-            return (int)i;
-    }
-    return -1;
-}
-static int find_resource_in_process(process_resource_information* pri, const char* resource_name)
-{
-    for (size_t i = 0; i < pri->individualResourcesSize; i++)
-    {
-        if (pri->individualResourceNames[i] &&
-            strcmp(pri->individualResourceNames[i], resource_name) == 0)
-            return (int)i;
-    }
-    return -1;
 }
 
 
@@ -275,8 +291,8 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
     if (!request || !manager) return -1;
 
     pid_t pid = request->pid;
-    size_t wanted   = request->requestedResources;
-    int idx   = find_process_index(manager, pid);
+    size_t wanted = request->requestedResources;
+    int idx = find_process_index(manager, pid);
 
     if (idx < 0)
     {
@@ -312,59 +328,10 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
         idx = (int)slot;
     }
 
-    process_resource_information* pri = manager->process_resources[idx];
-    process_resource_information* pool = manager->process_resources[0];
-
-    size_t assigned = 0;
-
-    if (pool)
-    {
-        for (size_t p = 0;
-             p < pool->individualResourcesSize && assigned < wanted;
-             p++)
-        {
-            if (!pool->individualResourceNames[p]) continue;
-
-            const char* rname = pool->individualResourceNames[p];
-
-            if (find_resource_in_process(pri, rname) >= 0) continue;
-
-            size_t free_slot = pri->individualResourcesSize;
-            for (size_t j = 0; j < pri->individualResourcesSize; j++)
-            {
-                if (!pri->individualResourceNames[j]) { free_slot = j; break; }
-            }
-
-            if (free_slot == pri->individualResourcesSize)
-            {
-                size_t new_size = pri->individualResourcesSize * 2;
-                char** tmp = realloc(pri->individualResourceNames,
-                                     new_size * sizeof(char*));
-                if (!tmp) break;
-                memset(tmp + pri->individualResourcesSize, 0,
-                       (new_size - pri->individualResourcesSize) * sizeof(char*));
-                pri->individualResourceNames    = tmp;
-                pri->individualResourcesSize    = new_size;
-            }
-
-            pri->individualResourceNames[free_slot] = fixed_strdup(pool->individualResourceNames[p]);
-
-            free(pool->individualResourceNames[p]);
-            pool->individualResourceNames[p] = NULL;
-            if (pool->has > 0)
-                pool->has--;
-
-            assigned++;
-        }
-    }
-
-
-    pri->needs += assigned;
+    manager->process_resources[idx]->needs += wanted;
 
     return 0;
 }
-
-
 int resource_manager_release(resource_manager* manager, needy_client_finalize* finalize_request)
 {
     if (!manager || !finalize_request) return -1;

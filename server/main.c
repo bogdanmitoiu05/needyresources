@@ -89,7 +89,6 @@ int main(int argc, char* const* argv)
     }
     MQManager* mq_manager = mq_manager_new(conf->maximumClients);
     resource_manager* res_manager = resource_manager_new(mq_manager, conf->maximumAllowedResources);
-    //printf(conf->workingDirectory)
     if ( resource_manager_index(res_manager, conf->workingDirectory) < 0)
     {
         goto quit;
