@@ -31,27 +31,27 @@ typedef struct {
 
 /**
  * Instanțiază un nou răspuns server
- * @param code
- * @param noResources
- * @param resourceNames
+ * @param code Codul de răspuns din partea serverului
+ * @param noResources Numărul de resurse atașate
+ * @param resourceNames Numele fișierelor aferente resurselor
  * @return
  */
 needy_resource_response_t* needy_resource_response_new(response_code code, size_t noResources, char** resourceNames);
 /**
- *
- * @param this
- * @return
+ * Serializează un răspuns de resurse în format AST JSON
+ * @param this obiectul de serializat
+ * @return forma serializată
  */
 json_t* needy_resource_response_serialize(needy_resource_response_t* this);
 /**
- *
- * @param json
- * @return
+ * Deserializează un răspuns în format json AST și instanțiază un obiect cu informațiile conținute în acesta
+ * @param json AST-ul JSON
+ * @return un răspuns sau NULL pentru eroare
  */
 needy_resource_response_t* needy_resource_response_deserialize(json_t* json);
 /**
- *
- * @param response
+ * Distruge un răspuns
+ * @param response răspunsul de distrus
  */
 void needy_resource_response_destroy(needy_resource_response_t* response);
 #endif //NEEDYRESOURCES_RESOURCE_RESPONSE_H
