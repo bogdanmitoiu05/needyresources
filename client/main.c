@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 
-
+//hello ,new machine
 int main(int argc, char* const* argv) {
     pid_t my_pid = getpid();
 
