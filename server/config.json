@@ -4,7 +4,7 @@
   "config": {
     "workingDirectory": "./resources",
     "enableLiveUpdate": true,
-    "maximumAllowedResources": 0,
+    "maximumAllowedResources": 10,
     "maximumClients": 6
   }
 }

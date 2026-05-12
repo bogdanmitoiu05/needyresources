@@ -38,7 +38,7 @@ int main(int argc, char* const* argv)
 
     bool version_flag = false;
     char* config_path = calloc(64, sizeof(char));
-    strcpy(config_path, "config.json");
+    strcpy(config_path, "/IdeaProjects/needyresources/files/config.json");
 
     bool stop_parse = false;
     while ((opt = getopt(argc, argv, "hvc:")) != -1 && !stop_parse) {

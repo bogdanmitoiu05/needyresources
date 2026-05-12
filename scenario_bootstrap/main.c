@@ -91,9 +91,9 @@ int main(void) {
     printf("[BOOTSTRAP] Starting beta scenario...\n");
 
     char *server_argv[] = {
-        "../server/nr_server",
+        "/IdeaProjects/needyresources/server/nr_server",
         "-c",
-        "../server/config.json",
+        "/IdeaProjects/needyresources/files/config.json",
         NULL
     };
 
@@ -123,7 +123,7 @@ int main(void) {
         snprintf(resources_arg, sizeof(resources_arg), "%d", scenario[i].requested_resources);
 
         char *client_argv[] = {
-            "../client/nr_client",
+            "/IdeaProjects/needyresources/client/nr_client",
             "-i",
             id_arg,
             "-p",

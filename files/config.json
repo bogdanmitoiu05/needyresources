@@ -2,9 +2,9 @@
   "$schema": "https://github.com/bogdanmitoiu05/needyresources/raw/refs/heads/main/docs/schemas/server-config.json",
   "version": 1,
   "config": {
-    "workingDirectory": "./resources",
+    "workingDirectory": "/IdeaProjects/needyresources/files/resources",
     "enableLiveUpdate": true,
-    "maximumAllowedResources": 0,
+    "maximumAllowedResources": 10,
     "maximumClients": 6
   }
 }
