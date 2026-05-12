@@ -40,7 +40,7 @@ needy_message_t * needy_message_deserialize(json_t *msg) {
     json_error_t error;
     const char* type = NULL;
     int success = json_unpack_ex(msg, &error, JSON_STRICT, "{s:I,s:s,s:O}", "version",&(result->version), "type",type, "payload",&(result->payload));
-    if (!success) {
+    if (success<0) {
         JSON_ERROR_PRINTF(error);
         free(result);
         return NULL;

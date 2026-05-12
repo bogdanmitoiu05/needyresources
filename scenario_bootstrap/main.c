@@ -37,32 +37,6 @@ static pid_t start_process(char *const argv[]) {
 
     return pid;
 }
-
-static void create_server_queue(void) {
-    struct mq_attr attr;
-
-    attr.mq_flags = 0;
-    attr.mq_maxmsg = 10;
-    attr.mq_msgsize = MAX_MSG_SIZE;
-    attr.mq_curmsgs = 0;
-
-    mq_unlink(SERVER_QUEUE_NAME);
-
-    mqd_t server_mq = mq_open(
-        SERVER_QUEUE_NAME,
-        O_CREAT | O_RDONLY,
-        QUEUE_PERMISSIONS,
-        &attr
-    );
-
-    if (server_mq == (mqd_t)-1) {
-        perror("[BOOTSTRAP] Could not create server message queue");
-        exit(EXIT_FAILURE);
-    }
-
-    mq_close(server_mq);
-}
-
 static void wait_for_client(pid_t pid, int client_id) {
     int status = 0;
     time_t start_time = time(NULL);
@@ -115,8 +89,6 @@ static void wait_for_client(pid_t pid, int client_id) {
 
 int main(void) {
     printf("[BOOTSTRAP] Starting beta scenario...\n");
-
-    create_server_queue();
 
     char *server_argv[] = {
         "../server/nr_server",

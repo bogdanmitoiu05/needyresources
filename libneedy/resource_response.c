@@ -38,7 +38,7 @@ needy_resource_response_t * needy_resource_response_deserialize(json_t *json) {
     ENSURE_NOTNULL_MSG_RNULL(resource_response, "needy_resource_response_deserialize: could not allocate resource response");
     json_error_t error;
     const int success = json_unpack_ex(json, &error, 0, "{s:i,s:i}", "code", &resource_response->code,"resource_count",&resource_response->noResources);
-    if (!success) {
+    if (success<0) {
         JSON_ERROR_PRINTF(error);
         free(resource_response);
         return NULL;

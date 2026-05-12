@@ -3,7 +3,7 @@
 //
 
 #include "client_identification.h"
-#include <needy-private.h>
+#include <utils.h>
 #include <string.h>
 
 
@@ -18,37 +18,18 @@ needy_client_identification_header * needy_client_identification_header_new(pid_
 
 }
 
-needy_client_identification_header * needy_client_identification_header_deserialize(json_t *data) {
-    ENSURE_NOTNULL_RNULL(data);
-    if (!json_is_object(data)) {
-        fputs("Nu am primit obiect",stderr);
+needy_client_identification_header * needy_client_identification_header_deserialize(json_t *msg) {
+    ENSURE_NOTNULL_MSG_RNULL(msg, "needy_message_deserialize: msg is NULL");
+    needy_client_identification_header* result = calloc(1, sizeof(needy_client_identification_header));
+    ENSURE_NOTNULL_MSG_RNULL(msg, "needy_message_deserialize: could not allocate message");
+    json_error_t error;
+    int success = json_unpack_ex(msg, &error, JSON_STRICT, "{s:i,s:s}", "pid",&(result->pid), "workspace_path",result->workspace_path);
+    if (success<0) {
+        JSON_ERROR_PRINTF(error);
+        free(result);
+        return NULL;
     }
-
-    const char* key;
-    json_t* value;
-
-    char* workspace_path = NULL;
-    pid_t pid = -1;
-    json_object_foreach(data,key,value) {
-        if (strcmp(key,"pid")==0) {
-            if (!json_is_number(value)) {
-                fputs("Am gasit pid, dar nu este de tip numar",stderr);
-                return NULL;
-            }
-            pid = (pid_t) json_number_value(value);
-        }
-        if (strcmp(key,"workspace_path")==0) {
-            if (!json_is_string(value)) {
-                fputs("Am gasit pid, dar nu este de tip numar",stderr);
-                return NULL;
-            }
-            workspace_path = strdup(json_string_value(value));
-        }
-    }
-    if (pid == -1 || workspace_path == NULL) return NULL;
-    needy_client_identification_header* res = needy_client_identification_header_new(pid,workspace_path);
-    free(workspace_path);
-    return res;
+    return result;
 }
 
 json_t *needy_client_identification_header_serialize(needy_client_identification_header *this) {
