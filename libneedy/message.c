@@ -85,5 +85,7 @@ char* fixed_strdup(const char* in)
     size_t len;
     size_t inLen = strlen(in);
     len = inLen > MAX_MSG_SIZE ? inLen : MAX_MSG_SIZE;
-    return calloc(len,sizeof(char));
+    char* bf = calloc(len,sizeof(char));
+    strcpy(bf, in);
+    return bf;
 }
