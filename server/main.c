@@ -131,7 +131,7 @@ int main(int argc, char* const* argv)
                 {
                     break; //eroare
                 }
-                printf("got conn req\n");
+                //printf("got conn req\n");
                 client_conn* new_conn = client_conn_new(header);
                 mq_manager_add(mq_manager, new_conn);
                 break;
@@ -141,7 +141,7 @@ int main(int argc, char* const* argv)
                 {
                     break;
                 }
-                printf("got res req\n");
+                //printf("got res req\n");
                 resource_manager_add_request(res_manager,request);
                 needy_resource_response_t* response = resource_manager_step(res_manager);
                 needy_message_t* msg = needy_message_new(RESOURCE_RESPONSE,needy_resource_response_serialize(response));
@@ -152,7 +152,7 @@ int main(int argc, char* const* argv)
                 nr++;
                 break;
             case CLIENT_FINALIZE:;
-                printf("got fin req\n");
+                //printf("got fin req\n");
                 needy_client_finalize* finalizeMsg = needy_client_finalize_deserialize(message->payload);
                 if (!finalizeMsg)
                 {
