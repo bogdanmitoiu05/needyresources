@@ -43,6 +43,6 @@ json_t* needy_server_ack_serialize(const needy_server_ack* this) {
 }
 
 void needy_server_ack_destroy(needy_server_ack* this) {
-    ENSURE_NOTNULL(this); //nu apelăm free pe NU
+    ENSURE_NOTNULL(this); //nu apelăm free pe NULL
     free(this);
 }
