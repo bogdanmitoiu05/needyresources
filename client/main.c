@@ -22,7 +22,9 @@ int main(int argc, char* const* argv) {
     bool version_flag = false; //dacă vedem -v, afișăm autorii și ne oprim
     char* client_workspace_path = calloc(1024, sizeof(char)); // inițializează calea de workspace
     if (client_workspace_path == NULL) {
-        fputs("Could not allocate workspace path", stderr);
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Client [%d]: Could not allocate workspace path",my_pid);
+        fputs(msg, stderr);
         exit(EXIT_FAILURE);
     }
 
@@ -41,14 +43,18 @@ int main(int argc, char* const* argv) {
             case 'i': //id
                 id = strtol(optarg, NULL, 10); //conversie în baza 10
                 if (id == 0) { //functia va returna 0 dacă întâlnește un șir de intrare ce nu reprezintă un număr
-                    fputs("Invalid ID specified",stderr);
+                    char msg[64];
+                    snprintf(msg, sizeof(msg), "Client [%d]: Invalid ID specified",my_pid);
+                    fputs(msg, stderr);
                     exit(EXIT_FAILURE);
                 }
                 break;
             case 'r': //nr. resurse de cerut
                 noResources = strtol(optarg, NULL, 10); // vezi mai sus
                 if (id == 0) {
-                    fputs("Resouruces no invalid",stderr);
+                    char msg[64];
+                    snprintf(msg, sizeof(msg), "Client [%d]: Resource number (no)invalid",my_pid);
+                    fputs(msg, stderr);
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -84,14 +90,17 @@ int main(int argc, char* const* argv) {
 
     mqd_t client_mq = mq_open(client_queue_name, O_CREAT | O_RDONLY, 0644, &attr); //pe aici va răspunde serverul
     if (client_mq == (mqd_t)-1) { //dacă nu am reușit să creem coada
-        perror("Client: Failed to create client queue");
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Client [%d]: Failed to open client queue",my_pid);
+        perror(msg);
         exit(1);
     }
 
     mqd_t server_mq = mq_open(SERVER_QUEUE_NAME, O_WRONLY); //aici va scrie clientul serverului
     if (server_mq == (mqd_t)-1) {
-        perror("Client: Failed to open server queue");
-        mq_unlink(client_queue_name);
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Client [%d]: Failed to open server queue",my_pid);
+        perror(msg);mq_unlink(client_queue_name);
         exit(1);
     }
 
@@ -136,7 +145,9 @@ int main(int argc, char* const* argv) {
             needy_resource_response_destroy(ack);
         }
     } else {
-        perror("Client: mq_receive failed");
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Client [%d]: mq_receive failed",my_pid);
+        perror(msg);
     }
 
     // simulam

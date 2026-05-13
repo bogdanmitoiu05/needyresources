@@ -83,7 +83,7 @@ int main(int argc, char* const* argv)
 
     mqd_t server_mq = mq_open(SERVER_QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &attr);
     if (server_mq == (mqd_t)-1) {
-        perror("Client: Failed to open server queue");
+        perror("Server: Failed to open server queue");
         mq_unlink(SERVER_QUEUE_NAME);
         exit(EXIT_FAILURE);
     }
@@ -119,8 +119,8 @@ int main(int argc, char* const* argv)
 
         }
         needy_message_t* message = needy_message_from_string(buffer);
-        printf("Received message: %s\n", buffer);
-        //printf("%s\n",message->message_type);
+        printf("[SERVER] Received message: %s\n", buffer);
+        ///printf("%s\n",message->message_type);
         memset(buffer, 0, MAX_MSG_SIZE);
         if (!message) continue;
         switch (message->message_type)

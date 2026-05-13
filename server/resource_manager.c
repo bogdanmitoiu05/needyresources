@@ -8,6 +8,12 @@
 
 #define INITIAL_RESOURCE_SLOTS 10
 
+/**
+ * creeaza symlink pe resursa respectiva pentru un anume client
+ * @param pri proces information pointer
+ * @param resource_name nume resursa
+ * @return
+ */
 int resource_manager_grant_resource(process_resource_information* pri, const char* resource_name)
 {
     if (!pri || !resource_name) return -1;
@@ -29,6 +35,14 @@ int resource_manager_grant_resource(process_resource_information* pri, const cha
     pri->has++;
     return 0;
 }
+
+/**
+ * find proces index in the current pool
+ * of allocated resources
+ * @param manager
+ * @param pid
+ * @return
+ */
 static int find_process_index(resource_manager* manager, pid_t pid)
 {
     for (size_t i = 0; i < manager->process_count; i++)
@@ -39,6 +53,13 @@ static int find_process_index(resource_manager* manager, pid_t pid)
     }
     return -1;
 }
+
+/**
+ * gaseste numele unei resurse din lista de resurse a unui proces
+ * @param pri
+ * @param resource_name
+ * @return 0 OK,-1 error
+ */
 static int find_resource_in_process(process_resource_information* pri, const char* resource_name)
 {
     for (size_t i = 0; i < pri->individualResourcesSize; i++)
@@ -51,7 +72,13 @@ static int find_resource_in_process(process_resource_information* pri, const cha
 }
 
 
-
+/**
+ * indexeaza un director pentru un manager de resurse
+ *
+ * @param manager
+ * @param working_directory
+ * @return numar de resurse gasite in acel director
+ */
 int resource_manager_index(resource_manager* manager, const char* working_directory)
 {
     if (!working_directory) return -1;
@@ -130,7 +157,12 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
 
     return count;
 }
-
+/**
+ * aloc o instanta manager de resurse ce are un numar maxim de resurse de asignat
+ * @param manager message queue manager
+ * @param maxResources
+ * @return pointer manager de resurse
+ */
 resource_manager* resource_manager_new(MQManager* manager, size_t maxResources)
 {
     //printf("poc\n");
@@ -155,7 +187,10 @@ resource_manager* resource_manager_new(MQManager* manager, size_t maxResources)
 
     return rm;
 }
-
+/**
+ * dau free la fiecare nume de resursa per proces,apoi manager
+ * @param manager
+ */
 void resource_manager_destroy(resource_manager* manager)
 {
     if (!manager) return;
@@ -176,6 +211,14 @@ void resource_manager_destroy(resource_manager* manager)
     free(manager);
 
 }
+
+/**
+ * realizeaza un pas din algoritmul bancherului
+ * verifica daca poate aloca pentru fiecare proces valoarea ceruta
+ *
+ * @param manager
+ * @return starea finala pentru cererile curente:OK , DEADLOCK
+ */
 needy_resource_response_t* resource_manager_step(resource_manager* manager)
 {
     if (!manager) return NULL;
@@ -285,7 +328,13 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
     return response;
 }
 
-
+/**
+ * adauga cererea facuta de un client in situatia curenta a managerului:
+ * client needs
+ * @param manager
+ * @param request
+ * @return
+ */
 int resource_manager_add_request(resource_manager* manager, const needy_resource_request* request)
 {
     if (!request || !manager) return -1;
@@ -332,6 +381,13 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
 
     return 0;
 }
+
+/**
+ * da free la resursele alocate unui client,cand clientul cere fin
+ * @param manager resource manager
+ * @param finalize_request
+ * @return 0 OK,-1 eroare
+ */
 int resource_manager_release(resource_manager* manager, needy_client_finalize* finalize_request)
 {
     if (!manager || !finalize_request) return -1;
