@@ -18,6 +18,21 @@
 #define NEEDYRESOURCES_RESOURCE_RESPONSE_H
 #include <jansson.h>
 #include <utils.h>
+
+/**
+*  * ```json
+ * {
+ *      "code":$code,
+ *      "resource_count":$noRequestedResources,
+ *      "names":[
+ *          "./res1",
+ *          "./res2"
+ *      ]
+ *
+ * }
+ *
+ * ```
+ */
 typedef enum {
     OK = 200,
     DEADLOCK = 507
