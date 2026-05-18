@@ -14,10 +14,10 @@
 #include "mq_manager.h"
 typedef struct
 {
-    size_t has;
-    size_t needs;
-    char** individualResourceNames;
-    size_t individualResourcesSize;
+    size_t* has;
+    size_t* needs;
+    char*** individualResourceNames;
+    size_t* individualResourceSize;
     pid_t pid;
 }process_resource_information;
 
@@ -36,13 +36,14 @@ typedef struct
     size_t active_process_count;
     size_t idx;
     resource_manager_state state;
+    size_t nr_resource_type;
 }resource_manager;
 
-resource_manager* resource_manager_new(MQManager* manager, size_t maxResources);
+resource_manager* resource_manager_new(MQManager* manager, size_t maxResources, size_t nr_resource_type);
 void resource_manager_destroy(resource_manager* manager);
-int resource_manager_index(resource_manager* manager, const char* working_directory);
+int resource_manager_index(resource_manager* manager, const char* working_directory,size_t type_index);
 needy_resource_response_t* resource_manager_step(resource_manager* manager);
-int resource_manager_add_request(resource_manager* manager,const needy_resource_request* request);
+int resource_manager_add_request(resource_manager* manager,const needy_resource_request* request,size_t type_index);
 int resource_manager_release(resource_manager* manager, needy_client_finalize* finalize_request);
 
 
