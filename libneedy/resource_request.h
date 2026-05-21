@@ -13,14 +13,15 @@
 *  * ```json
  * {
  *      "pid":$pid,
- *      "requestedResources":$noRequestedResources
+ *      "requestedResources":[$noRequestedResourcesType1,$noRequestedResourcesType2,...]
  * }
  *
  * ```
  */
 typedef struct {
     pid_t pid;
-    size_t requestedResources;
+    size_t* requestedResources;
+    size_t noResources;
 } needy_resource_request;
 
 /**
@@ -29,7 +30,7 @@ typedef struct {
  * @param requestedResources numărul de resurse cerute
  * @return Instanța nou creată de cerere de resursă
  */
-needy_resource_request* needy_client_resource_request_new(pid_t pid, size_t requestedResources);
+needy_resource_request* needy_client_resource_request_new(pid_t pid, size_t* requestedResources, size_t noResources);
 /**
  * Deserializează cererea de resurse
  * @param data
