@@ -25,7 +25,7 @@ json_t* server_config_serialize(server_config_t* config) {
         return NULL;
     }
 
-    json_t* confFileObj = json_pack_ex(&error, 0, "{s:i,s:o}", "version", 1, "config", confObj);
+    json_t* confFileObj = json_pack_ex(&error, 0, "{s:i,s:o}", "version", SERVER_CONFIG_FILE_VERSION, "config", confObj);
     if (!confFileObj) {
         JSON_ERROR_PRINTF(error);
         return NULL;
@@ -44,7 +44,10 @@ server_config_t* server_config_deserialize(json_t* json) {
         JSON_ERROR_PRINTF(error);
         return NULL;
     }
-
+    if (version!= SERVER_CONFIG_FILE_VERSION) {
+        fputs("load_from_file: server config version mismatch",stderr);
+        return NULL;
+    }
     server_config_t* conf = new(server_config_t);
     if (!conf) {
         fputs("load_from_file: could not allocate config object",stderr);

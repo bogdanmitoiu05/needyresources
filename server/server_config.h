@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <needy.h>
-
+#define SERVER_CONFIG_FILE_VERSION 1
 typedef struct {
     char* workingDirectory;
     bool liveUpdate;
