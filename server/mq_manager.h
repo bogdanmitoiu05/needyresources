@@ -5,7 +5,7 @@
 #ifndef NEEDYRESOURCES_MQ_MANAGER_H
 #define NEEDYRESOURCES_MQ_MANAGER_H
 #include <needy.h>
-
+#include <stdbool.h>
 /**
  * Structura ce reprezinta o conexiune
  * O conexiune se defineste in server ca fiind o pereche (antet, queue_fd)
@@ -74,4 +74,12 @@ void mq_manager_close_all(MQManager *mgr);
  * @param mgr obiectul de distrus
  */
 void mq_manager_destroy(MQManager* mgr);
+/**
+ * @brief Functie care precizeaza daca mai avem loc 
+ * 
+ * @param mgr 
+ * @return true 
+ * @return false 
+ */
+bool mq_manager_has_space(MQManager* mgr);
 #endif //NEEDYRESOURCES_MQ_MANAGER_H

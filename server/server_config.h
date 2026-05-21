@@ -7,12 +7,13 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <needy.h>
-#define SERVER_CONFIG_FILE_VERSION 1
+#define SERVER_CONFIG_FILE_VERSION 2
 typedef struct {
     char* workingDirectory;
     bool liveUpdate;
     size_t maximumAllowedResources;
     size_t maximumClients;
+    size_t typesOfResources;
 
 }server_config_t;
 

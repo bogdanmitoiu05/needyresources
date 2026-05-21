@@ -3,6 +3,8 @@
 //
 
 #include "mq_manager.h"
+#include "utils.h"
+#include <stdbool.h>
 
 
 client_conn* client_conn_new(needy_client_identification_header* clientInfo)
@@ -94,6 +96,10 @@ void mq_manager_close_all(MQManager *mgr) {
     }
     mgr->active_count = 0;
 
+}
+bool mq_manager_has_space(MQManager* mgr){
+    ENSURE_NOTNULL_FULL(mgr, false);
+    return mgr->active_count < mgr->queue_size;
 }
 void mq_manager_destroy(MQManager* mgr) {
     ENSURE_NOTNULL(mgr);

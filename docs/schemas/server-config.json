@@ -30,6 +30,11 @@
           "type": "number",
           "minimum": 1,
           "description": "Maximum number of clients the server can support"
+        },
+        "typesOfResources":{
+          "type": "number",
+          "minimum": 1,
+          "description": "How many types of resource can the server support"
         }
       },
       "required": ["workingDirectory"]

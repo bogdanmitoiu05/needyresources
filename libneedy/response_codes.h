@@ -1,0 +1,10 @@
+#ifndef NEEDY_RESPONSE_CODES
+#define NEEDY_RESPONSE_CODES
+typedef enum {
+    OK = 200,
+    INCORRECT_NUMBER_OF_RESOURCES=404,
+    LIMIT_EXCEEDED = 429,
+    MAX_CLIENT_LIMIT_EXCEEDED=503,
+    DEADLOCK = 507
+} response_code;
+#endif

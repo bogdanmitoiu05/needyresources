@@ -7,12 +7,14 @@
 #include <jansson.h>
 #include <unistd.h>
 #include "utils.h"
+#include "response_codes.h"
 /// FUTURE USE
 /**
 *  * ```json
  * {
  *      "pid":$pid,
- *      "response": $response
+ *      "response": $response,
+ *      "message": $message
  *
  * }
  *
@@ -20,16 +22,18 @@
  */
 typedef struct {
     pid_t pid;
-    size_t response;
+    response_code code;
+    char* message;
 }needy_server_ack;
 
 /**
  * Instanțiază un nou ACK de server
  * @param pid PID destinatar
  * @param response cod răspuns
+ * @param message Mesaj asociat codului
  * @return ACK sau NULL la eroare
  */
-needy_server_ack* needy_server_ack_new(pid_t pid, size_t response);
+needy_server_ack* needy_server_ack_new(const pid_t pid, response_code code, const char* message);
 
 /**
  * Extrage un ACK server din AST JSON

@@ -15,12 +15,14 @@ void server_config_destroy(server_config_t* this) {
 json_t* server_config_serialize(server_config_t* config) {
     json_error_t error;
     ENSURE_NOTNULL_MSG_RNULL(config, "server_config_serialize: config is NULL")
-    json_t* confObj = json_pack_ex(&error, 0, "{s:s,s:b,s:i,s:i}",
+    json_t* confObj = json_pack_ex(&error, 0, "{s:s,s:b,s:i,s:i,s:i}",
         "workingDirectory", &(config->workingDirectory),
         "enableLiveUpdate", &(config->liveUpdate),
         "maximumAllowedResources", &(config->maximumAllowedResources),
-        "maximumClients", &(config->maximumClients));
+        "maximumClients", &(config->maximumClients),
+        "typesOfResources", &(config->typesOfResources));
     if (!confObj) {
+        
         JSON_ERROR_PRINTF(error);
         return NULL;
     }
@@ -59,14 +61,19 @@ server_config_t* server_config_deserialize(json_t* json) {
         "workingDirectory", &(conf->workingDirectory),
         "enableLiveUpdate", &(conf->liveUpdate),
         "maximumAllowedResources", &(conf->maximumAllowedResources),
-        "maximumClients", &(conf->maximumClients));
+        "maximumClients", &(conf->maximumClients),
+        "typesOfResources", &(conf->typesOfResources));
+    
     if (success2 < 0) {
         JSON_ERROR_PRINTF(error);
         free(conf);
         //json_decref(obj);
         return NULL;
     }
-
+    if(conf->typesOfResources == 0){
+        fputs("typesOfResources was set to 0. That is not allowed. Setting to 1", stderr);
+        conf->typesOfResources = 1;
+    }
     return conf;
 }
 server_config_t * load_from_file(const char *file) {

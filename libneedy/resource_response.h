@@ -18,7 +18,7 @@
 #define NEEDYRESOURCES_RESOURCE_RESPONSE_H
 #include <jansson.h>
 #include <utils.h>
-
+#include "response_codes.h"
 /**
 *  * ```json
  * {
@@ -33,10 +33,7 @@
  *
  * ```
  */
-typedef enum {
-    OK = 200,
-    DEADLOCK = 507
-} response_code;
+
 
 typedef struct {
     response_code code;

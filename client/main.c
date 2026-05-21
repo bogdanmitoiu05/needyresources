@@ -128,7 +128,7 @@ int main(int argc, char* const* argv) {
         needy_message_t* receivedMessage = needy_message_from_string(receive_buffer);
         if (receivedMessage) {
             needy_server_ack *msg= needy_server_ack_deserialize(receivedMessage->payload);
-            printf("[Client %d] received ack message from server(%d)\n", my_pid, msg->response);
+            printf("[Client %d] received ack message from server(%d)\n", my_pid, msg->code);
             needy_server_ack_destroy(msg);
         }
     }

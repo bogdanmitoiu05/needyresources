@@ -62,7 +62,7 @@ static int find_process_index(resource_manager* manager, pid_t pid)
  */
 static int find_resource_in_process(process_resource_information* pri, const char* resource_name, size_t type_index)
 {
-    for (size_t i = 0; i < pri->individualResourceSize; i++)
+    for (size_t i = 0; i < pri->individualResourceSize[type_index]; i++)
     {
         if (pri->individualResourceNames[type_index][i] &&
             strcmp(pri->individualResourceNames[type_index][i], resource_name) == 0)
@@ -75,8 +75,9 @@ static int find_resource_in_process(process_resource_information* pri, const cha
 /**
  * indexeaza un director pentru un manager de resurse
  *
- * @param manager
- * @param working_directory
+ * @param manager Managerul de resurse
+ * @param working_directory Directorul 
+ * @param type_index 
  * @return numar de resurse gasite in acel director
  */
 int resource_manager_index(resource_manager* manager, const char* working_directory, size_t type_index)
@@ -192,6 +193,7 @@ resource_manager* resource_manager_new(MQManager* manager, size_t maxResources, 
     rm->idx                  = 0;
     rm->state.idx            = 0;
     rm->state.is_sorted      = false;
+    
 
     return rm;
 }
@@ -209,7 +211,7 @@ void resource_manager_destroy(resource_manager* manager)
         if (!pri) continue;
 
         for (size_t k = 0; k < manager->nr_resource_type; k++) {
-            for (size_t j = 0; j < pri->individualResourceSize; j++)
+            for (size_t j = 0; j < pri->individualResourceSize[k]; j++)
                 free(pri->individualResourceNames[k][j]);
             free(pri->individualResourceNames[k]);
         }
@@ -313,7 +315,6 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
 
     needy_resource_response_t* response = calloc(1, sizeof(needy_resource_response_t));
     if (!response) return NULL;
-
     if (safe)
     {
         response->code = OK;
@@ -468,7 +469,7 @@ int resource_manager_release(resource_manager* manager, needy_client_finalize* f
     process_resource_information* pri = manager->process_resources[idx];
 
     for (size_t i = 0; i < manager->nr_resource_type; i++) {
-        for (size_t j = 0; j < pri->individualResourceSize; j++)
+        for (size_t j = 0; j < pri->individualResourceSize[i]; j++)
         {
             if (!pri->individualResourceNames[i][j]) continue;
 

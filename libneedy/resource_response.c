@@ -7,7 +7,6 @@
 #include <string.h>
 
 needy_resource_response_t * needy_resource_response_new(response_code code, size_t noResources, char **resourceNames) {
-    ENSURE_NOTNULL_MSG_RNULL(resourceNames, "needy_resource_response_new: resourceNames is NULL"); // null check
 
     needy_resource_response_t* resource_response = new(needy_resource_response_t); // instantiere
     ENSURE_NOTNULL_MSG_RNULL(resource_response, "needy_resource_response_new: could not allocate response");
@@ -23,7 +22,7 @@ json_t* needy_resource_response_serialize(needy_resource_response_t *this) {
     ENSURE_NOTNULL_MSG_RNULL(this, "needy_resource_response_serialize: this is NULL");// null check
 
     json_t* res = json_pack("{s:i,s:i}"/*i - int, s - string*/, "code", this->code,"resource_count",this->noResources); //impachetare.
-    ENSURE_NOTNULL_MSG_RNULL(res, "Could not pack res")
+    ENSURE_NOTNULL_MSG_RNULL(res, "Could not pack res");
     json_t* arr = json_array(); // trebuie construit manual vectorul
     ENSURE_NOTNULL_MSG_RNULL(arr, "needy_resource_response_serialize: arr is NULL");
     for (size_t i = 0; i < this->noResources; ++i) { // pentru fiecare string din C, generam un string json

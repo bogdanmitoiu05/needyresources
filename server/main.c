@@ -5,9 +5,15 @@
 #include <needy.h>
 #include <pthread.h>
 #include <string.h>
+#include "message.h"
+#include "message_queue.h"
+#include "message_type.h"
+#include "resource_response.h"
+#include "server_ack.h"
 #include "server_config.h"
 #include "mq_manager.h"
 #include "resource_manager.h"
+#include <response_codes.h>
 /**
  * Sistemul se va baza pe o coadă de mesaje ce va conține toate cererile pt procesare
  *
@@ -88,10 +94,12 @@ int main(int argc, char* const* argv)
         exit(EXIT_FAILURE);
     }
     MQManager* mq_manager = mq_manager_new(conf->maximumClients);
-    resource_manager* res_manager = resource_manager_new(mq_manager, conf->maximumAllowedResources);
-    if ( resource_manager_index(res_manager, conf->workingDirectory) < 0)
-    {
-        goto quit;
+    resource_manager* res_manager = resource_manager_new(mq_manager, conf->maximumAllowedResources, conf->typesOfResources);
+    for(size_t i = 0; i < conf->typesOfResources; ++i){
+        if ( resource_manager_index(res_manager, conf->workingDirectory,i) < 0)//loop index folders
+        {
+            goto quit;
+        }
     }
     //printf("hello\n");
     puts("Server started");
@@ -127,19 +135,48 @@ int main(int argc, char* const* argv)
         {
             case CLIENT_CONNECTION_REQUEST:;
                 needy_client_identification_header* header = needy_client_identification_header_deserialize(message->payload);
+                if(!mq_manager_has_space(mq_manager)){
+                    needy_server_ack* ack = needy_server_ack_new(header->pid, MAX_CLIENT_LIMIT_EXCEEDED, "Server has reached maximum capacity");
+                    client_conn* new_conn = client_conn_new(header);
+                    needy_message_t* message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
+                    send_message(new_conn->queue, message);
+
+                    needy_message_destroy(message);
+                    needy_server_ack_destroy(ack);
+                    client_conn_destroy(new_conn);
+                }
+                
                 if (!header)
                 {
                     break; //eroare
                 }
+                
                 //printf("got conn req\n");
                 client_conn* new_conn = client_conn_new(header);
                 mq_manager_add(mq_manager, new_conn);
+                
+                needy_server_ack* ack = needy_server_ack_new(header->pid, OK, "");
+                needy_message_t* message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
+                send_message(new_conn->queue, message);
+                
+                needy_message_destroy(message);
+                needy_server_ack_destroy(ack);
                 break;
             case RESOURCE_REQUEST:;
                 needy_resource_request* request = needy_client_resource_request_deserialize(message->payload);
                 if (!request)
                 {
                     break;
+                }
+
+                if(request->noResources != res_manager->nr_resource_type){ // verifica dimensiunea vectorului sa fie conforma cu ce se asteapta serverul
+                    char buff[1024]={0,};
+                    needy_resource_response_t* ack = needy_resource_response_new(INCORRECT_NUMBER_OF_RESOURCES, 0, NULL);
+                    needy_message_t* message = needy_message_new(RESOURCE_RESPONSE, needy_resource_response_serialize(ack));
+                    send_message(findByPid(mq_manager,request->pid),message);
+
+                    needy_client_resource_request_destroy(request);
+                    needy_resource_response_destroy(ack);
                 }
                 //printf("got res req\n");
                 resource_manager_add_request(res_manager,request);
