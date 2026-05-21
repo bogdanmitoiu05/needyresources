@@ -117,6 +117,17 @@ int main(int argc, char* const* argv) {
     needy_client_identification_header_destroy(identification_header); //eliberăm resursele
     needy_message_destroy(msg);
 
+    char receive_buffer[MAX_MSG_SIZE];
+    printf("Client [%d] waiting for SERVER_ACK...\n", my_pid);
+
+    ssize_t bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
+    if (bytes_read >= 0) {
+        needy_message_t* receivedMessage = needy_message_from_string(receive_buffer);
+        if (receivedMessage) {
+            needy_server_ack *msg= needy_server_ack_deserialize(receivedMessage->payload);
+            printf("[Client %d] received ack from server\n", my_pid, msg->response);
+        }
+    }
 
     printf("Client [%d] requesting resources...\n", my_pid);
     // emitem o cerere de resurse pentru sine
@@ -129,10 +140,9 @@ int main(int argc, char* const* argv) {
 
 
     //asteptam mesajul. Nu continuam fara resurse
-    char receive_buffer[MAX_MSG_SIZE];
-    printf("Client [%d] waiting for SERVER_ACK...\n", my_pid);
+    printf("Client [%d] waiting for RESOURCE_RESPONSE...\n", my_pid);
 
-    ssize_t bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
+    bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
     if (bytes_read >= 0) { //daca am putut receptiona mesajul
 
         needy_message_t* receivedMessage = needy_message_from_string(receive_buffer); //citeste mesajul

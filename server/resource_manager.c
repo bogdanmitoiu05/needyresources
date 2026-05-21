@@ -382,12 +382,12 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
  * @param request
  * @return
  */
-int resource_manager_add_request(resource_manager* manager, const needy_resource_request* request, size_t type_index)
+int resource_manager_add_request(resource_manager* manager, const needy_resource_request* request)
 {
-    if (!request || !manager || type_index >= manager->nr_resource_type) return -1;
+    if (!request || !manager ) return -1;
 
     pid_t pid = request->pid;
-    size_t wanted = request->requestedResources;
+    size_t* wanted = request->requestedResources;
     int idx = find_process_index(manager, pid);
 
     if (idx < 0)
@@ -439,8 +439,10 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
         manager->active_process_count++;
         idx = (int)slot;
     }
+    for (int i = 0; i < manager->nr_resource_type; i++) {
+        manager->process_resources[idx]->needs[i] += wanted[i];
+    }
 
-    manager->process_resources[idx]->needs[type_index] += wanted;
 
     return 0;
 }
