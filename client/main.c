@@ -23,7 +23,7 @@ int main(int argc, char* const* argv) {
     char* client_workspace_path = calloc(1024, sizeof(char)); // inițializează calea de workspace
     if (client_workspace_path == NULL) {
         char msg[64];
-        snprintf(msg, sizeof(msg), "Client [%d]: Could not allocate workspace path",my_pid);
+        snprintf(msg, sizeof(msg), "[Client %d]: Could not allocate workspace path",my_pid);
         fputs(msg, stderr);
         exit(EXIT_FAILURE);
     }
@@ -44,7 +44,7 @@ int main(int argc, char* const* argv) {
                 id = strtol(optarg, NULL, 10); //conversie în baza 10
                 if (id == 0) { //functia va returna 0 dacă întâlnește un șir de intrare ce nu reprezintă un număr
                     char msg[64];
-                    snprintf(msg, sizeof(msg), "Client [%d]: Invalid ID specified",my_pid);
+                    snprintf(msg, sizeof(msg), "[Client %d]: Invalid ID specified",my_pid);
                     fputs(msg, stderr);
                     exit(EXIT_FAILURE);
                 }
@@ -53,7 +53,7 @@ int main(int argc, char* const* argv) {
                 noResources = strtol(optarg, NULL, 10); // vezi mai sus
                 if (id == 0) {
                     char msg[64];
-                    snprintf(msg, sizeof(msg), "Client [%d]: Resource number (no)invalid",my_pid);
+                    snprintf(msg, sizeof(msg), "[Client %d]: Resource number (no)invalid",my_pid);
                     fputs(msg, stderr);
                     exit(EXIT_FAILURE);
                 }
@@ -91,7 +91,7 @@ int main(int argc, char* const* argv) {
     mqd_t client_mq = mq_open(client_queue_name, O_CREAT | O_RDONLY, 0644, &attr); //pe aici va răspunde serverul
     if (client_mq == (mqd_t)-1) { //dacă nu am reușit să creem coada
         char msg[64];
-        snprintf(msg, sizeof(msg), "Client [%d]: Failed to open client queue",my_pid);
+        snprintf(msg, sizeof(msg), "[Client %d]: Failed to open client queue",my_pid);
         perror(msg);
         exit(1);
     }
@@ -99,7 +99,7 @@ int main(int argc, char* const* argv) {
     mqd_t server_mq = mq_open(SERVER_QUEUE_NAME, O_WRONLY); //aici va scrie clientul serverului
     if (server_mq == (mqd_t)-1) {
         char msg[64];
-        snprintf(msg, sizeof(msg), "Client [%d]: Failed to open server queue",my_pid);
+        snprintf(msg, sizeof(msg), "[Client %d]: Failed to open server queue",my_pid);
         perror(msg);mq_unlink(client_queue_name);
         exit(1);
     }
@@ -118,18 +118,19 @@ int main(int argc, char* const* argv) {
     needy_message_destroy(msg);
 
     char receive_buffer[MAX_MSG_SIZE];
-    printf("Client [%d] waiting for SERVER_ACK...\n", my_pid);
+    printf("[Client %d] waiting for SERVER_ACK...\n", my_pid);
 
     ssize_t bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
     if (bytes_read >= 0) {
         needy_message_t* receivedMessage = needy_message_from_string(receive_buffer);
         if (receivedMessage) {
             needy_server_ack *msg= needy_server_ack_deserialize(receivedMessage->payload);
-            printf("[Client %d] received ack from server\n", my_pid, msg->response);
+            printf("[Client %d] received ack message from server(%d)\n", my_pid, msg->response);
+            needy_server_ack_destroy(msg);
         }
     }
 
-    printf("Client [%d] requesting resources...\n", my_pid);
+    printf("[Client %d] requesting resources...\n", my_pid);
     // emitem o cerere de resurse pentru sine
     needy_resource_request* request = needy_client_resource_request_new(my_pid, noResources);
 
@@ -140,7 +141,7 @@ int main(int argc, char* const* argv) {
 
 
     //asteptam mesajul. Nu continuam fara resurse
-    printf("Client [%d] waiting for RESOURCE_RESPONSE...\n", my_pid);
+    printf("[Client %d] waiting for RESOURCE_RESPONSE...\n", my_pid);
 
     bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
     if (bytes_read >= 0) { //daca am putut receptiona mesajul
@@ -150,24 +151,24 @@ int main(int argc, char* const* argv) {
         if (receivedMessage) { //daca am putut citi mesajul
             needy_resource_response_t* ack = needy_resource_response_deserialize(receivedMessage->payload); //deserializaează în ack
 
-            printf("Client [%d] received code from server (Response Code: %d)\n", my_pid, ack->code);
+            printf("[Client %d] received code from server (Response Code: %d)\n", my_pid, ack->code);
 
             needy_resource_response_destroy(ack);
         }
     } else {
         char msg[64];
-        snprintf(msg, sizeof(msg), "Client [%d]: mq_receive failed",my_pid);
+        snprintf(msg, sizeof(msg), "[Client %d]: mq_receive failed",my_pid);
         perror(msg);
     }
 
     // simulam
     // --- to be  changed ---
 
-    printf("Client [%d] holding resources. Processing for 10 seconds...\n", my_pid);
+    printf("[Client %d] holding resources. Processing for 10 seconds...\n", my_pid);
     sleep(10);
 
     // am terminat procesarea
-    printf("Client [%d] processing complete. Releasing resources...\n", my_pid);
+    printf("[Client %d] processing complete. Releasing resources...\n", my_pid);
     needy_client_finalize* finalize = needy_client_finalize_new(my_pid); //trimitem instiintarea de finalziare
     needy_message_t* msg_fin = needy_message_new(CLIENT_FINALIZE,needy_client_finalize_serialize(finalize));
     send_message(server_mq, msg_fin);
@@ -179,6 +180,6 @@ int main(int argc, char* const* argv) {
     mq_close(client_mq);
     mq_unlink(client_queue_name);
     free(client_workspace_path);
-    printf("Client [%d] shutting down safely.\n", my_pid);
+    printf("[Client %d] shutting down safely.\n", my_pid);
     return 0;
 }
