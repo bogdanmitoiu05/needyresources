@@ -39,7 +39,7 @@ __attribute_warn_unused_result__ needy_resource_request * needy_client_resource_
     for (size_t i = 0; i < json_array_size(arrayObject); ++i) { //pentru fiecare element din vectorul JSON extrage stringul continut
         json_t* currItem = json_array_get(arrayObject,i);
         if (!json_is_number(currItem)) {
-            fputs("needy_client_resource_request_deserialize: Not a number");
+            fputs("needy_client_resource_request_deserialize: Not a number",stderr);
             resources[i] = 0;
         }
         else
