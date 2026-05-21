@@ -7,8 +7,6 @@
 #include <needy.h>
 #include <stdbool.h>
 
-#include "../server/server_config.h"
-
 
 /***
  * Fiecare client se identifică prin intermediul ID-ului de proces (PID)
