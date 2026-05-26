@@ -90,7 +90,7 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
     DIR* dir = opendir(working_directory);
     if (!dir)
     {
-        printf("resource_manager_index: opendir");
+        perror("opendir() failed: ");
         return -1;
     }
 
