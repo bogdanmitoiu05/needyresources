@@ -182,10 +182,6 @@ void* func_send(void* args) {
     }
     return NULL;
 }
-void init_threads(pthread_attr_t* attr_send) {
-
-}
-
 static server_config_t* conf = NULL;
 int main(int argc, char* const* argv)
 {
