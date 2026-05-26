@@ -239,6 +239,6 @@ int main(int argc, char* const* argv) {
     mq_unlink(client_queue_name);
     free(client_workspace_path);
     if(json_file_path) free(json_file_path);
-    printf("Shutting down");
+    printDbg("Shutting down");
     return 0;
 }
