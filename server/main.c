@@ -30,10 +30,25 @@
  * Evident, acest lucru nu protejează împotriva unor potențiale pierderi de date dacă fișierul este șters și readăugat între momentul de actualizare a bazei de resurse și finalizarea
  * curățării.
  */
+#define printDbg(...){\
+char __msg[1024];\
+snprintf(__msg, sizeof(__msg), __VA_ARGS__);\
+char __msg2[2000]; \
+snprintf(__msg2, sizeof(__msg2),"[Server]: %s\n", __msg);\
+fputs(__msg2, stdout);\
+}
+#define printErr(...) {\
+char __msg[1024];\
+snprintf(__msg, sizeof(__msg), __VA_ARGS__);\
+char __msg2[2000]; \
+snprintf(__msg2, sizeof(__msg2),"[Server]: %s\n", __msg);\
+fputs(__msg2, stderr);\
+}
+
 volatile bool shouldQuit = false;
 void terminate_handler(__attribute_maybe_unused__ int signal) {
     shouldQuit = true;
-    printf("quit received");
+    printDbg("quit received");
 }
 pthread_t th_receive,th_send;
 typedef struct {
@@ -70,7 +85,7 @@ void* func_receive(void* args) {
         {
             if (errno == ETIMEDOUT)
             {
-                printf("time\n");
+                printDbg("time\n");
 
                 if (shouldQuit)
                     break;
@@ -82,8 +97,8 @@ void* func_receive(void* args) {
 
         }
         needy_message_t* message = needy_message_from_string(buffer);
-        printf("[SERVER] Received message: %s\n", buffer);
-        ///printf("%s\n",message->message_type);
+        printDbg("[SERVER] Received message: %s\n", buffer);
+        ///printDbg("%s\n",message->message_type);
         memset(buffer, 0, MAX_MSG_SIZE);
         if (!message) {
             fprintf(stderr,"[SERVER] Received NULL message\n");
@@ -135,7 +150,7 @@ void* func_send(void* args) {
         if (shouldQuit) {
             return NULL;
         }
-        printf("Got message\n");
+        printDbg("Got message");
         switch (message->message_type) {
             case CLIENT_CONNECTION_REQUEST:;
                 needy_client_identification_header* header = needy_client_identification_header_deserialize(message->payload);
@@ -155,20 +170,20 @@ void* func_send(void* args) {
                     break; //eroare
                 }
 
-                //printf("got conn req\n");
+                //printDbg("got conn req\n");
                 client_conn* new_conn = client_conn_new(header);
                 mq_manager_add(mq_manager, new_conn);
 
                 needy_server_ack* ack = needy_server_ack_new(header->pid, OK, "");
                 needy_message_t* ack_message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
-                printf("ack\n");
+                printDbg("ack");
                 send_message(new_conn->queue, ack_message);
 
                 needy_message_destroy(ack_message);
                 needy_server_ack_destroy(ack);
                 break;
             case RESOURCE_REQUEST:;
-                printf("rr\n");
+                printDbg("rr");
                 needy_resource_request* request = needy_client_resource_request_deserialize(message->payload);
                 if (!request)
                 {
@@ -183,7 +198,7 @@ void* func_send(void* args) {
                     needy_client_resource_request_destroy(request);
                     needy_resource_response_destroy(ack);
                 }
-                //printf("got res req\n");
+                //printDbg("got res req\n");
                 int res = resource_manager_add_request(res_manager,request);
                 needy_resource_response_t* response;
                 if (res == -2) {
@@ -204,8 +219,8 @@ void* func_send(void* args) {
 
                 break;
             case CLIENT_FINALIZE:;
-                printf("cf\n");
-                //printf("got fin req\n");
+                printDbg("cf");
+                //printDbg("got fin req\n");
                 needy_client_finalize* finalizeMsg = needy_client_finalize_deserialize(message->payload);
                 if (!finalizeMsg)
                 {
@@ -215,7 +230,7 @@ void* func_send(void* args) {
                 needy_client_finalize_destroy(finalizeMsg);
                 break;
             default:
-                fputs("ERROR: Invalid message received", stderr);
+                printErr("ERROR: Invalid message received");
                 break;
         }
     }
@@ -256,7 +271,7 @@ int main(int argc, char* const* argv)
 
 
     if (version_flag) {
-        printf("Needy Resources, version %s\n.Proiect pt SO2\nVersiune protocol needy: %u\nProfesori coordonatori: Florin-Teodor Fortiș, Diogen Babuc\nEchipa:$Name\nMembri:\n1.Alexandru Turculeț\n2.Mitoiu Bogdan Mitoiu\n3.Timeea Tătărușanu",SERVER_VERSION,NEEDY_PROTOCOL_VERSION);
+        printDbg("Needy Resources, version %s\n.Proiect pt SO2\nVersiune protocol needy: %u\nProfesori coordonatori: Florin-Teodor Fortiș, Diogen Babuc\nEchipa:$Name\nMembri:\n1.Alexandru Turculeț\n2.Mitoiu Bogdan Mitoiu\n3.Timeea Tătărușanu",SERVER_VERSION,NEEDY_PROTOCOL_VERSION);
         exit(EXIT_SUCCESS);
     }
 
@@ -288,13 +303,13 @@ int main(int argc, char* const* argv)
     for(size_t i = 0; i < conf->typesOfResources; ++i){
         if ( resource_manager_index(res_manager, conf->workingDirectory,i) < 0)//loop index folders
         {
-            fputs("Failed to index resources",stderr);
+            printErr("Failed to index resources");
             goto quit_noargs;
         }
     }
-    //printf("hello\n");
-    puts("Server started");
-    puts("Server is listenin");
+    //printDbg("hello\n");
+    printDbg("Server started");
+    printDbg("Server is listenin");
     recv_args_t* args = new(send_args_t);
     if (args == NULL) {
         perror("malloc failed recv_args");
@@ -315,11 +330,11 @@ int main(int argc, char* const* argv)
     pthread_create(&th_send,NULL,func_send,(void*)args1);
 
     pthread_join(th_receive,NULL);
-    puts("Receive stopped");
+    printDbg("Receive stopped");
     pthread_cond_broadcast(&bufferHasItems);
     pthread_join(th_send,NULL);
-    puts("Sending stopped");
-    puts("Server quitting");
+    printDbg("Sending stopped");
+    printDbg("Server quitting");
     if (args)
         free(args);
     if (args1)
