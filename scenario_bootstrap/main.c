@@ -92,9 +92,9 @@ int main(void) {
     printf("[BOOTSTRAP] Starting beta scenario...\n");
 
     char *server_argv[] = {
-        "/workspaces/needyresources/build/server/nr_server",
+        "/IdeaProjects/needyresources/build/server/nr_server",
         "-c",
-        "/workspaces/needyresources/files/config.json",
+        "/IdeaProjects/needyresources/files/config.json",
         NULL
     };
 
@@ -109,7 +109,7 @@ int main(void) {
 
         json_error_t error;
     json_t *scenario_json = json_load_file(
-        "/workspaces/needyresources/files/scenarios/scenario_1.json",
+        "/IdeaProjects/needyresources/files/scenarios/scenario_1.json",
         0,
         &error
     );
