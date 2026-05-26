@@ -10,15 +10,16 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <jansson.h>
 
-#define CLIENT_COUNT 3
+#define MAX_CLIENTS 10
 #define SERVER_START_DELAY_SECONDS 1
 #define CLIENT_TIMEOUT_SECONDS 20
 
 typedef struct {
     int id;
-    int requested_resources;
-    const char *workspace_path;
+    char workspace[256];
+    char request_file[256];
 } client_scenario_t;
 
 static pid_t start_process(char *const argv[]) {
@@ -91,9 +92,9 @@ int main(void) {
     printf("[BOOTSTRAP] Starting beta scenario...\n");
 
     char *server_argv[] = {
-        "../server/nr_server",
+        "/workspaces/needyresources/build/server/nr_server",
         "-c",
-        "/IdeaProjects/needyresources/files/config.json",
+        "/workspaces/needyresources/files/config.json",
         NULL
     };
 
@@ -106,52 +107,90 @@ int main(void) {
 
     sleep(SERVER_START_DELAY_SECONDS);
 
-    client_scenario_t scenario[CLIENT_COUNT] = {
-        {1, 2, "workspace_client_1"},
-        {2, 2, "workspace_client_2"},
-        {3, 1, "workspace_client_3"}
-    };
+        json_error_t error;
+    json_t *scenario_json = json_load_file(
+        "/workspaces/needyresources/files/scenarios/scenario_1.json",
+        0,
+        &error
+    );
 
-    pid_t client_pids[CLIENT_COUNT];
+    if (!scenario_json) {
+        fprintf(stderr,
+                "[BOOTSTRAP] Failed to load scenario file: %s\n",
+                error.text);
+        return EXIT_FAILURE;
+    }
 
-    for (int i = 0; i < CLIENT_COUNT; i++) {
+    json_t *clients = json_object_get(scenario_json, "clients");
+
+    if (!json_is_array(clients)) {
+        fprintf(stderr, "[BOOTSTRAP] Invalid clients array\n");
+        json_decref(scenario_json);
+        return EXIT_FAILURE;
+    }
+
+    size_t client_count = json_array_size(clients);
+
+    client_scenario_t scenario[MAX_CLIENTS];
+    pid_t client_pids[MAX_CLIENTS];
+
+    size_t index;
+    json_t *client_json;
+
+    json_array_foreach(clients, index, client_json) {
+
+        scenario[index].id =
+            json_integer_value(json_object_get(client_json, "id"));
+
+        strcpy(
+            scenario[index].workspace,
+            json_string_value(
+                json_object_get(client_json, "workspace")
+            )
+        );
+
+        strcpy(
+            scenario[index].request_file,
+            json_string_value(
+                json_object_get(client_json, "request_file")
+            )
+        );
+
         char id_arg[16];
-        char resources_arg[16];
 
-        snprintf(id_arg, sizeof(id_arg), "%d", scenario[i].id);
-        snprintf(resources_arg, sizeof(resources_arg), "%d", scenario[i].requested_resources);
+        snprintf(
+            id_arg,
+            sizeof(id_arg),
+            "%d",
+            scenario[index].id
+        );
 
         char *client_argv[] = {
             "../client/nr_client",
             "-i",
             id_arg,
             "-p",
-            (char *)scenario[i].workspace_path,
-            "-r",
-            resources_arg,
+            scenario[index].workspace,
+            "-f",
+            scenario[index].request_file,
             NULL
         };
 
         printf(
-            "[BOOTSTRAP] Starting client %d requesting %d resources...\n",
-            scenario[i].id,
-            scenario[i].requested_resources
+            "[BOOTSTRAP] Starting client %d...\n",
+            scenario[index].id
         );
 
-        client_pids[i] = start_process(client_argv);
-
-        if (client_pids[i] < 0) {
-            printf("[BOOTSTRAP] Could not start client %d\n", scenario[i].id);
-        }
+        client_pids[index] = start_process(client_argv);
 
         sleep(1);
     }
 
-    for (int i = 0; i < CLIENT_COUNT; i++) {
-        if (client_pids[i] > 0) {
-            wait_for_client(client_pids[i], scenario[i].id);
-        }
+    for (size_t i = 0; i < client_count; i++) {
+        wait_for_client(client_pids[i], scenario[i].id);
     }
+
+    json_decref(scenario_json);
 
     printf("[BOOTSTRAP] Stopping server...\n");
     kill(server_pid, SIGTERM);
