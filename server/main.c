@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <needy.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <string.h>
 #include "message.h"
 #include "message_queue.h"
@@ -32,6 +33,133 @@
 volatile bool shouldQuit = false;
 void terminate_handler(__attribute_maybe_unused__ int signal) {
     shouldQuit = true;
+}
+pthread_t th_receive,th_send;
+typedef struct {
+    MQManager *mq_manager;
+    mqd_t server_mq;
+} recv_args_t;
+typedef struct {
+    MQManager *mq_manager;
+    resource_manager* res_manager;
+} send_args_t;
+#define BUFF_SIZE 12
+needy_message_t* share_buff[BUFF_SIZE];
+int buf_in=0;
+int buf_out=0;
+sem_t sem_full,sem_gol;
+pthread_mutex_t mutex_message;
+int nr=0;
+
+void* func_receive(void* args) {
+    recv_args_t* recv_args = args;
+    MQManager* mq_manager = recv_args->mq_manager;
+    mqd_t server_mq = recv_args->server_mq;
+    char buffer[MAX_MSG_SIZE] = {0,};
+
+    while (!shouldQuit && mq_manager->active_count < mq_manager->queue_size && nr<3) {
+        struct timespec timeout;
+        clock_gettime(CLOCK_REALTIME, &timeout);
+        timeout.tv_sec += 5;
+        ssize_t b_received = mq_timedreceive(server_mq, buffer, MAX_MSG_SIZE, NULL, &timeout);
+        if (b_received < 0)
+        {
+            if (errno == ETIMEDOUT)
+            {
+                printf("time\n");
+                errno = 0;
+                continue;
+            }
+            perror("Something went wrong while reading from message queue: ");
+            break; //porneste procesarea
+
+        }
+        needy_message_t* message = needy_message_from_string(buffer);
+        printf("[SERVER] Received message: %s\n", buffer);
+        ///printf("%s\n",message->message_type);
+        memset(buffer, 0, MAX_MSG_SIZE);
+        if (!message) continue;
+        sem_wait(&sem_gol);
+        pthread_mutex_lock(&mutex_message);
+        share_buff[buf_in] = message;
+        buf_in=(buf_in+1)%BUFF_SIZE;
+        pthread_mutex_unlock(&mutex_message);
+        sem_post(&sem_full);
+    }
+    free(args);
+    return NULL;
+}
+
+void* func_send(void* args) {
+    send_args_t* send_args = (send_args_t*)args;
+    MQManager* mq_manager = send_args->mq_manager;
+    resource_manager* res_manager = send_args->res_manager;
+    while (!shouldQuit) {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_sec += 1; // 1-second timeout
+
+        if (sem_timedwait(&sem_full, &ts) == -1) {
+            if (errno == ETIMEDOUT) continue;
+            break;
+        }
+
+        pthread_mutex_lock(&mutex_message);
+        needy_message_t* message = share_buff[buf_out];
+        buf_out = (buf_out+1)%BUFF_SIZE;
+        pthread_mutex_unlock(&mutex_message);
+        sem_post(&sem_gol);
+        switch (message->message_type)
+        {
+            case CLIENT_CONNECTION_REQUEST:;
+                needy_client_identification_header* header = needy_client_identification_header_deserialize(message->payload);
+                if (!header)
+                {
+                    break; //eroare
+                }
+                //printf("got conn req\n");
+                client_conn* new_conn = client_conn_new(header);
+                mq_manager_add(mq_manager, new_conn);
+                break;
+            case RESOURCE_REQUEST:;
+                needy_resource_request* request = needy_client_resource_request_deserialize(message->payload);
+                if (!request)
+                {
+                    break;
+                }
+                //printf("got res req\n");
+                resource_manager_add_request(res_manager,request);
+                needy_resource_response_t* response = resource_manager_step(res_manager);
+                needy_message_t* msg = needy_message_new(RESOURCE_RESPONSE,needy_resource_response_serialize(response));//vieleicht leak memory
+
+                send_message(findByPid(mq_manager,request->pid),msg);
+
+                needy_client_resource_request_destroy(request);
+                nr++;
+                break;
+            case CLIENT_FINALIZE:;
+                //printf("got fin req\n");
+                needy_client_finalize* finalizeMsg = needy_client_finalize_deserialize(message->payload);
+                if (!finalizeMsg)
+                {
+                    break;
+                }
+                resource_manager_release(res_manager, finalizeMsg);
+                needy_client_finalize_destroy(finalizeMsg);
+                break;
+            default:
+                fputs("ERROR: Invalid message received", stderr);
+                break;
+        }
+        //needy_message_destroy(message);
+    }
+    for (int i=0;i<BUFF_SIZE;i++) {
+        free(share_buff[i]);
+    }
+    return NULL;
+}
+void init_threads(pthread_attr_t* attr_send) {
+
 }
 
 static server_config_t* conf = NULL;
@@ -104,27 +232,26 @@ int main(int argc, char* const* argv)
     //printf("hello\n");
     puts("Server started");
     puts("Server is listenin");
+    pthread_mutex_init(&mutex_message, NULL);
+    sem_init(&sem_gol, 0, BUFF_SIZE);
+    sem_init(&sem_full, 0, 0);
+    recv_args_t* args = malloc(sizeof(recv_args_t));
+    if (args == NULL) {
+        perror("malloc failed recv_args");
+        goto quit;
+    }
+    args->server_mq = server_mq;
+    args->mq_manager = mq_manager;
 
-    char buffer[MAX_MSG_SIZE] = {0,};
-
-    int nr=0;
-    while (!shouldQuit && mq_manager->active_count < mq_manager->queue_size && nr<3)
-    {
-        struct timespec timeout;
-        clock_gettime(CLOCK_REALTIME, &timeout);
-        timeout.tv_sec += 5;
-        ssize_t b_received = mq_timedreceive(server_mq, buffer, MAX_MSG_SIZE, NULL, &timeout);
-        if (b_received < 0)
-        {
-            if (errno == ETIMEDOUT)
-            {
-                printf("time\n");
-                errno = 0;
-                continue;
-            }
-            perror("Something went wrong while reading from message queue: ");
-            break; //porneste procesarea
-
+    send_args_t* args1 = malloc(sizeof(send_args_t));
+    if (args1 == NULL) {
+        perror("malloc failed send_args");
+        goto quit;
+    }
+    args1->res_manager = res_manager;
+    args1->mq_manager = mq_manager;
+    pthread_create(&th_receive,NULL,func_receive,(void*)args);
+    pthread_create(&th_send,NULL,func_send,(void*)args1);
         }
         needy_message_t* message = needy_message_from_string(buffer);
         printf("[SERVER] Received message: %s\n", buffer);
@@ -145,20 +272,20 @@ int main(int argc, char* const* argv)
                     needy_server_ack_destroy(ack);
                     client_conn_destroy(new_conn);
                 }
-                
+
                 if (!header)
                 {
                     break; //eroare
                 }
-                
+
                 //printf("got conn req\n");
                 client_conn* new_conn = client_conn_new(header);
                 mq_manager_add(mq_manager, new_conn);
-                
+
                 needy_server_ack* ack = needy_server_ack_new(header->pid, OK, "");
                 needy_message_t* message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
                 send_message(new_conn->queue, message);
-                
+
                 needy_message_destroy(message);
                 needy_server_ack_destroy(ack);
                 break;
@@ -183,30 +310,18 @@ int main(int argc, char* const* argv)
                 needy_resource_response_t* response = resource_manager_step(res_manager);
                 needy_message_t* msg = needy_message_new(RESOURCE_RESPONSE,needy_resource_response_serialize(response));
 
-                send_message(findByPid(mq_manager,request->pid),msg);
+    pthread_join(th_receive,NULL);
+    pthread_join(th_send,NULL);
 
-                needy_client_resource_request_destroy(request);
-                nr++;
-                break;
-            case CLIENT_FINALIZE:;
-                //printf("got fin req\n");
-                needy_client_finalize* finalizeMsg = needy_client_finalize_deserialize(message->payload);
-                if (!finalizeMsg)
-                {
-                    break;
-                }
-                resource_manager_release(res_manager, finalizeMsg);
-                needy_client_finalize_destroy(finalizeMsg);
-                break;
-            default:
-                fputs("ERROR: Invalid message received", stderr);
-                break;
-        }
-        needy_message_destroy(message);
-    }
+
 
 quit:
     puts("Server quitting");
+    free(args);
+    free(args1);
+    sem_destroy(&sem_gol);
+    sem_destroy(&sem_full);
+    pthread_mutex_destroy(&mutex_message);
     resource_manager_destroy(res_manager);
     mq_manager_close_all(mq_manager);
     mq_manager_destroy(mq_manager);
