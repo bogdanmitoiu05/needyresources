@@ -309,11 +309,11 @@ int main(int argc, char* const* argv)
     }
     //printDbg("hello");
     printDbg("Server started");
-    printDbg("Server is listenin");
+    printDbg("Server is listening");
     recv_args_t* args = new(send_args_t);
     if (args == NULL) {
         perror("malloc failed recv_args");
-        goto quit_noargs;;
+        goto quit_noargs;
     }
     args->server_mq = server_mq;
     args->mq_manager = mq_manager;
