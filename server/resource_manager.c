@@ -206,6 +206,7 @@ void resource_manager_destroy(resource_manager* manager)
         free(pri->individualResourceSize);
         free(pri->has);
         free(pri->needs);
+        free(pri->max_needs);
         free(pri);
     }
 
@@ -486,6 +487,7 @@ int resource_manager_release(resource_manager* manager, needy_client_finalize* f
     free(pri->individualResourceSize);
     free(pri->has);
     free(pri->needs);
+    free(pri->max_needs);
     free(pri);
     manager->process_resources[idx] = NULL;
 
