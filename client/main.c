@@ -181,8 +181,9 @@ int main(int argc, char* const* argv) {
                 resource_vector[res_index] = (int)json_integer_value(res_val);
             }
         }
-
-        printDbg("Requesting resources...");
+        char mesaj[64];
+        sprintf(mesaj, "Requesting resources... %lu,%lu,%lu", resource_vector[0], resource_vector[1], resource_vector[2]);
+        printDbg(mesaj);
         // emitem o cerere de resurse pentru sine
         needy_resource_request* request = needy_client_resource_request_new(my_pid, resource_vector, total_resource_types);
 
@@ -205,12 +206,14 @@ int main(int argc, char* const* argv) {
 
                 printDbg("Client received code %d from server", ack->code);
 
-                needy_resource_response_destroy(ack);
+
 
                 if (ack->code != OK && ack->code != MAX_RESOURCE_NEED_REGISTERED) {
                     printErr("Received code %d. Stopping", ack->code);
                     break;
                 }
+                needy_resource_response_destroy(ack);
+
             }
         } else {
             printErr("mq_receive failed");

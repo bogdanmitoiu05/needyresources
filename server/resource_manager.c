@@ -284,8 +284,8 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
             }
             if (can_fin) {
                 finish[i] = true;
-                for (size_t i = 0; i < manager->resource_type_count; i++) {
-                    size_t curr_allocation = (p == target) ? (p->has[i] + p->needs[i]) : p->has[i];
+                for (size_t j = 0; j < manager->resource_type_count; j++) {
+                    size_t curr_allocation = (p == target) ? (p->has[j] + p->needs[j]) : p->has[j];
                     work[i] += curr_allocation;
                 }
                 changed = true;
