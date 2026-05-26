@@ -403,6 +403,7 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
 
         pri->has   = calloc(manager->resource_type_count, sizeof(size_t));
         pri->needs = calloc(manager->resource_type_count, sizeof(size_t));
+        pri->max_needs = calloc(manager->resource_type_count, sizeof(size_t));
         pri->individualResourceSize = calloc(manager->resource_type_count, sizeof(size_t));
         pri->individualResourceNames = calloc(manager->resource_type_count, sizeof(char**));
 
@@ -415,20 +416,28 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
             free(pri->individualResourceSize);
             free(pri->needs);
             free(pri->has);
+            free(pri->max_needs);
             free(pri);
             return -1;
         }
 
-        pri->pid   = pid;
+        pri->pid = pid;
 
-
+        for (size_t i = 0; i < manager->resource_type_count; i++) {
+            manager->process_resources[idx]->max_needs[i] = wanted[i];
+        }
         manager->process_resources[slot] = pri;
         manager->active_process_count++;
         idx = (int)slot;
+        return 1;
     }
     for (size_t i = 0; i < manager->resource_type_count; i++) {
         manager->process_resources[idx]->needs[i] += wanted[i];
+        if (manager->process_resources[idx]->needs[i] > manager->process_resources[idx]->max_needs[i]) {
+            return 2;
+        }
     }
+
 
 
     return 0;

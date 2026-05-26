@@ -124,6 +124,7 @@ int main(int argc, char* const* argv) {
     printf("[Client %d] waiting for SERVER_ACK...\n", my_pid);
 
     ssize_t bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
+    printf("read\n");
     if (bytes_read >= 0) {
         needy_message_t* receivedMessage = needy_message_from_string(receive_buffer);
         if (receivedMessage) {
@@ -195,6 +196,11 @@ int main(int argc, char* const* argv) {
                 printf("[Client %d] received code from server (Response Code: %d)\n", my_pid, ack->code);
 
                 needy_resource_response_destroy(ack);
+
+                if (ack->code != OK && ack->code != MAX_RESOURCE_NEED_REGISTERED) {
+                    fprintf(stderr,"GOT CODE %d. Stopping \n", ack->code);
+                    break;
+                }
             }
         } else {
             char msg[64];

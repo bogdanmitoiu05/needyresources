@@ -136,8 +136,7 @@ void* func_send(void* args) {
             return NULL;
         }
         printf("Got message\n");
-        switch (message->message_type)
-        {
+        switch (message->message_type) {
             case CLIENT_CONNECTION_REQUEST:;
                 needy_client_identification_header* header = needy_client_identification_header_deserialize(message->payload);
                 if(!mq_manager_has_space(mq_manager)){
@@ -162,13 +161,14 @@ void* func_send(void* args) {
 
                 needy_server_ack* ack = needy_server_ack_new(header->pid, OK, "");
                 needy_message_t* ack_message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
-
+                printf("ack\n");
                 send_message(new_conn->queue, ack_message);
 
                 needy_message_destroy(ack_message);
                 needy_server_ack_destroy(ack);
                 break;
             case RESOURCE_REQUEST:;
+                printf("rr\n");
                 needy_resource_request* request = needy_client_resource_request_deserialize(message->payload);
                 if (!request)
                 {
@@ -184,12 +184,24 @@ void* func_send(void* args) {
                     needy_resource_response_destroy(ack);
                 }
                 //printf("got res req\n");
-                resource_manager_add_request(res_manager,request);
-                needy_resource_response_t* response = resource_manager_step(res_manager);
+                int res = resource_manager_add_request(res_manager,request);
+                needy_resource_response_t* response;
+                if (res == 1) {
+                    response = needy_resource_response_new(MAX_RESOURCE_NEED_REGISTERED, 0, NULL);
+                }
+                else if (res == 2) {
+                    response = needy_resource_response_new(RESOURCE_LIMIT_EXCEEDED, 0, NULL);
+                }
+                else {
+                    response = resource_manager_step(res_manager);
+                }
+
                 needy_message_t* msg = needy_message_new(RESOURCE_RESPONSE,needy_resource_response_serialize(response));
                 send_message(findByPid(mq_manager,request->pid), msg);
+
                 break;
             case CLIENT_FINALIZE:;
+                printf("cf\n");
                 //printf("got fin req\n");
                 needy_client_finalize* finalizeMsg = needy_client_finalize_deserialize(message->payload);
                 if (!finalizeMsg)

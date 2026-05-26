@@ -16,6 +16,7 @@ typedef struct
 {
     size_t* has;
     size_t* needs;
+    size_t* max_needs;
     char*** individualResourceNames;
     size_t* individualResourceSize;
     pid_t pid;
