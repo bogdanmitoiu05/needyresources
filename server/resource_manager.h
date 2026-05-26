@@ -34,6 +34,7 @@ typedef struct
     process_resource_information** process_resources;
     MQManager* client_manager;
     size_t process_count;
+    size_t max_process_count;
     size_t active_process_count;
     size_t idx;
     resource_manager_state state;

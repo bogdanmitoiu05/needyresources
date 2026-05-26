@@ -186,6 +186,9 @@ void* func_send(void* args) {
                 //printf("got res req\n");
                 int res = resource_manager_add_request(res_manager,request);
                 needy_resource_response_t* response;
+                if (res == -2) {
+                    response = needy_resource_response_new(MAX_CLIENT_LIMIT_EXCEEDED, 0, NULL);
+                }
                 if (res == 1) {
                     response = needy_resource_response_new(MAX_RESOURCE_NEED_REGISTERED, 0, NULL);
                 }

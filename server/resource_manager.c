@@ -387,6 +387,9 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
                 slot = i; break;
             }
         }
+        if (slot==0 && manager->process_count == manager->max_process_count) {
+            return -2;
+        }
         if (slot == 0)
         {
             slot = manager->process_count;
