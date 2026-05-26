@@ -85,7 +85,7 @@ void* func_receive(void* args) {
         {
             if (errno == ETIMEDOUT)
             {
-                printDbg("time\n");
+                printDbg("time");
 
                 if (shouldQuit)
                     break;
@@ -97,11 +97,11 @@ void* func_receive(void* args) {
 
         }
         needy_message_t* message = needy_message_from_string(buffer);
-        printDbg("[SERVER] Received message: %s\n", buffer);
-        ///printDbg("%s\n",message->message_type);
+        printDbg("[SERVER] Received message: %s", buffer);
+        ///printDbg("%s",message->message_type);
         memset(buffer, 0, MAX_MSG_SIZE);
         if (!message) {
-            fprintf(stderr,"[SERVER] Received NULL message\n");
+            fprintf(stderr,"[SERVER] Received NULL message");
             continue;
         }
 
@@ -170,7 +170,7 @@ void* func_send(void* args) {
                     break; //eroare
                 }
 
-                //printDbg("got conn req\n");
+                //printDbg("got conn req");
                 client_conn* new_conn = client_conn_new(header);
                 mq_manager_add(mq_manager, new_conn);
 
@@ -198,7 +198,7 @@ void* func_send(void* args) {
                     needy_client_resource_request_destroy(request);
                     needy_resource_response_destroy(ack);
                 }
-                //printDbg("got res req\n");
+                //printDbg("got res req");
                 int res = resource_manager_add_request(res_manager,request);
                 needy_resource_response_t* response;
                 if (res == -2) {
@@ -220,7 +220,7 @@ void* func_send(void* args) {
                 break;
             case CLIENT_FINALIZE:;
                 printDbg("cf");
-                //printDbg("got fin req\n");
+                //printDbg("got fin req");
                 needy_client_finalize* finalizeMsg = needy_client_finalize_deserialize(message->payload);
                 if (!finalizeMsg)
                 {
@@ -307,7 +307,7 @@ int main(int argc, char* const* argv)
             goto quit_noargs;
         }
     }
-    //printDbg("hello\n");
+    //printDbg("hello");
     printDbg("Server started");
     printDbg("Server is listenin");
     recv_args_t* args = new(send_args_t);
