@@ -22,21 +22,22 @@ __attribute_warn_unused_result__ needy_resource_request * needy_client_resource_
     }
     pid_t pid = 0;
     json_error_t error; // deserializare
-    int success = json_unpack_ex(data, &error, JSON_STRICT, "{s:I}"/*I = long int*/,"pid",&pid);
+    int success = json_unpack_ex(data, &error, 0, "{s:I}"/*I = long int*/,"pid",&pid);
     if (success<0) {
         fputs("needy_client_resource_deserialize: invalid JSON",stderr);
         JSON_ERROR_PRINTF(error);
     }
 
-    json_t* arrayObject = json_object_get(data, "names"); // incepem parsarea manuala a vectorului de nume
+    json_t* arrayObject = json_object_get(data, "requestedResources"); // incepem parsarea manuala a vectorului de resurse cerute
     if (!json_is_array(arrayObject)) {
-        fputs("needy_resource_resource_deserialize: names field is NOT an array",stderr);
+        fputs("needy_resource_resource_deserialize: requestedResources field is NOT an array",stderr);
+        printf("%s",json_dumps(arrayObject,JSON_INDENT(4)));
         return NULL;
     }
 
-    size_t* resources = calloc(json_array_size(arrayObject),sizeof(size_t)); // instantierea vectorului de stringuri (char*)
+    size_t* resources = calloc(json_array_size(arrayObject),sizeof(size_t)); // instantierea vectorului de numere
     ENSURE_NOTNULL_MSG_RNULL(resources, "needy_resource_response_deserialize: could not allocate names array");
-    for (size_t i = 0; i < json_array_size(arrayObject); ++i) { //pentru fiecare element din vectorul JSON extrage stringul continut
+    for (size_t i = 0; i < json_array_size(arrayObject); ++i) { //pentru fiecare element din vectorul JSON extrage numarul
         json_t* currItem = json_array_get(arrayObject,i);
         if (!json_is_number(currItem)) {
             fputs("needy_client_resource_request_deserialize: Not a number",stderr);

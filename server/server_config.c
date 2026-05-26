@@ -82,7 +82,7 @@ server_config_t * load_from_file(const char *file) {
     ENSURE_NOTNULL_MSG_RNULL(confFd, "load_from_file: config file not found");
     json_error_t error;
     json_t* configFileJson = json_loadf(confFd,0, &error);
-
+    printf("%s\n",json_dumps(configFileJson, JSON_INDENT(4)));
 
     if (!configFileJson) {
         JSON_ERROR_PRINTF(error);

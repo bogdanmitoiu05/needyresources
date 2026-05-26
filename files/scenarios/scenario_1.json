@@ -3,17 +3,17 @@
     {
       "id": 1,
       "workspace": "workspace_client_1",
-      "request_file": "../files/client_configs/client1.json"
+      "request_file": "/IdeaProjects/needyresources/files/client_configs/client1.json"
     },
     {
       "id": 2,
       "workspace": "workspace_client_2",
-      "request_file": "../files/client_configs/client2.json"
+      "request_file": "/IdeaProjects/needyresources/files/client_configs/client2.json"
     },
     {
       "id": 3,
       "workspace": "workspace_client_3",
-      "request_file": "../files/client_configs/client3.json"
+      "request_file": "/IdeaProjects/needyresources/files/client_configs/client3.json"
     }
   ]
 }

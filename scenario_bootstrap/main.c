@@ -92,7 +92,7 @@ int main(void) {
     printf("[BOOTSTRAP] Starting beta scenario...\n");
 
     char *server_argv[] = {
-        "/IdeaProjects/needyresources/build/server/nr_server",
+        "/IdeaProjects/needyresources/cmake-build-debug/server/nr_server",
         "-c",
         "/IdeaProjects/needyresources/files/config.json",
         NULL
