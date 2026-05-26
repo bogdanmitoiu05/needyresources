@@ -36,12 +36,9 @@ needy_server_ack* needy_server_ack_deserialize(json_t* data) {
 
 json_t* needy_server_ack_serialize(const needy_server_ack* this) {
     ENSURE_NOTNULL_MSG_RNULL(this, "needy_client_resource_serialize: NULL pointer passed");
-    pid_t pid = 0;
-    u_int16_t code;
-    char* message;
     //idem, invers
     json_error_t error;
-    json_t* result = json_pack_ex(&error, 0, "{s:I,s:i,s:s}"/*string: long long, string: long long*/,"pid",pid, "code",code,"message",message);
+    json_t* result = json_pack_ex(&error, 0, "{s:I,s:i,s:s}"/*string: long long, string: long long*/,"pid",this->pid, "code",this->code,"message",this->message);
     if (!result) {
         fputs("needy_client_resource_request_serialize: JSON Error",stderr);
         JSON_ERROR_PRINTF(error);

@@ -63,7 +63,7 @@ server_config_t* server_config_deserialize(json_t* json) {
         "maximumAllowedResources", &(conf->maximumAllowedResources),
         "maximumClients", &(conf->maximumClients),
         "typesOfResources", &(conf->typesOfResources));
-    
+    conf->workingDirectory = strdup(conf->workingDirectory);
     if (success2 < 0) {
         JSON_ERROR_PRINTF(error);
         free(conf);
@@ -90,6 +90,7 @@ server_config_t * load_from_file(const char *file) {
     }
     fclose(confFd);
     server_config_t* conf = server_config_deserialize(configFileJson);
+    json_decref(configFileJson);
     return conf;
 }
 

@@ -33,6 +33,7 @@
 volatile bool shouldQuit = false;
 void terminate_handler(__attribute_maybe_unused__ int signal) {
     shouldQuit = true;
+    printf("quit received");
 }
 pthread_t th_receive,th_send;
 typedef struct {
@@ -45,11 +46,14 @@ typedef struct {
 } send_args_t;
 #define BUFF_SIZE 12
 needy_message_t* share_buff[BUFF_SIZE];
-int buf_in=0;
-int buf_out=0;
-sem_t sem_full,sem_gol;
-pthread_mutex_t mutex_message;
+int read_head=0;
+int write_head=0;
+pthread_mutex_t mutex_message = PTHREAD_MUTEX_INITIALIZER;
 int nr=0;
+pthread_cond_t bufferHasItems = PTHREAD_COND_INITIALIZER;
+pthread_cond_t bufferCanBeFilled = PTHREAD_COND_INITIALIZER;
+
+
 
 void* func_receive(void* args) {
     recv_args_t* recv_args = args;
@@ -60,13 +64,16 @@ void* func_receive(void* args) {
     while (!shouldQuit && mq_manager->active_count < mq_manager->queue_size && nr<3) {
         struct timespec timeout;
         clock_gettime(CLOCK_REALTIME, &timeout);
-        timeout.tv_sec += 5;
+        timeout.tv_sec += 1;
         ssize_t b_received = mq_timedreceive(server_mq, buffer, MAX_MSG_SIZE, NULL, &timeout);
         if (b_received < 0)
         {
             if (errno == ETIMEDOUT)
             {
                 printf("time\n");
+
+                if (shouldQuit)
+                    break;
                 errno = 0;
                 continue;
             }
@@ -78,15 +85,26 @@ void* func_receive(void* args) {
         printf("[SERVER] Received message: %s\n", buffer);
         ///printf("%s\n",message->message_type);
         memset(buffer, 0, MAX_MSG_SIZE);
-        if (!message) continue;
-        sem_wait(&sem_gol);
+        if (!message) {
+            fprintf(stderr,"[SERVER] Received NULL message\n");
+            continue;
+        }
+
         pthread_mutex_lock(&mutex_message);
-        share_buff[buf_in] = message;
-        buf_in=(buf_in+1)%BUFF_SIZE;
+
+        while (share_buff[write_head] != NULL && !shouldQuit) {
+            pthread_cond_wait(&bufferCanBeFilled, &mutex_message);
+        }
+        if (shouldQuit) {
+            needy_message_destroy(message);
+            pthread_mutex_unlock(&mutex_message);
+            return NULL;
+        }
+        share_buff[write_head] = message;
+        write_head=(write_head+1)%BUFF_SIZE;
+        pthread_cond_broadcast(&bufferHasItems);
         pthread_mutex_unlock(&mutex_message);
-        sem_post(&sem_full);
     }
-    free(args);
     return NULL;
 }
 
@@ -99,16 +117,25 @@ void* func_send(void* args) {
         clock_gettime(CLOCK_REALTIME, &ts);
         ts.tv_sec += 1; // 1-second timeout
 
-        if (sem_timedwait(&sem_full, &ts) == -1) {
-            if (errno == ETIMEDOUT) continue;
-            break;
-        }
+
 
         pthread_mutex_lock(&mutex_message);
-        needy_message_t* message = share_buff[buf_out];
-        buf_out = (buf_out+1)%BUFF_SIZE;
+        while (share_buff[read_head] == NULL && !shouldQuit) {
+            pthread_cond_wait(&bufferHasItems, &mutex_message);
+        }
+
+        needy_message_t* message = share_buff[read_head];
+        share_buff[read_head] = NULL;
+        pthread_cond_broadcast(&bufferCanBeFilled);
+        if (message && shouldQuit) {
+            needy_message_destroy(message);
+        }
+        read_head = (read_head+1)%BUFF_SIZE;
         pthread_mutex_unlock(&mutex_message);
-        sem_post(&sem_gol);
+        if (shouldQuit) {
+            return NULL;
+        }
+        printf("Got message\n");
         switch (message->message_type)
         {
             case CLIENT_CONNECTION_REQUEST:;
@@ -116,10 +143,10 @@ void* func_send(void* args) {
                 if(!mq_manager_has_space(mq_manager)){
                     needy_server_ack* ack = needy_server_ack_new(header->pid, MAX_CLIENT_LIMIT_EXCEEDED, "Server has reached maximum capacity");
                     client_conn* new_conn = client_conn_new(header);
-                    needy_message_t* message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
+                    needy_message_t* ack_message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
                     send_message(new_conn->queue, message);
 
-                    needy_message_destroy(message);
+                    needy_message_destroy(ack_message);
                     needy_server_ack_destroy(ack);
                     client_conn_destroy(new_conn);
                 }
@@ -134,10 +161,11 @@ void* func_send(void* args) {
                 mq_manager_add(mq_manager, new_conn);
 
                 needy_server_ack* ack = needy_server_ack_new(header->pid, OK, "");
-                needy_message_t* message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
-                send_message(new_conn->queue, message);
+                needy_message_t* ack_message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
 
-                needy_message_destroy(message);
+                send_message(new_conn->queue, ack_message);
+
+                needy_message_destroy(ack_message);
                 needy_server_ack_destroy(ack);
                 break;
             case RESOURCE_REQUEST:;
@@ -147,8 +175,7 @@ void* func_send(void* args) {
                     break;
                 }
 
-                if(request->noResources != res_manager->nr_resource_type){ // verifica dimensiunea vectorului sa fie conforma cu ce se asteapta serverul
-                    char buff[1024]={0,};
+                if(request->noResources != res_manager->resource_type_count){ // verifica dimensiunea vectorului sa fie conforma cu ce se asteapta serverul
                     needy_resource_response_t* ack = needy_resource_response_new(INCORRECT_NUMBER_OF_RESOURCES, 0, NULL);
                     needy_message_t* message = needy_message_new(RESOURCE_RESPONSE, needy_resource_response_serialize(ack));
                     send_message(findByPid(mq_manager,request->pid),message);
@@ -160,6 +187,7 @@ void* func_send(void* args) {
                 resource_manager_add_request(res_manager,request);
                 needy_resource_response_t* response = resource_manager_step(res_manager);
                 needy_message_t* msg = needy_message_new(RESOURCE_RESPONSE,needy_resource_response_serialize(response));
+                send_message(findByPid(mq_manager,request->pid), msg);
                 break;
             case CLIENT_FINALIZE:;
                 //printf("got fin req\n");
@@ -175,7 +203,6 @@ void* func_send(void* args) {
                 fputs("ERROR: Invalid message received", stderr);
                 break;
         }
-        //needy_message_destroy(message);
     }
     for (int i=0;i<BUFF_SIZE;i++) {
         free(share_buff[i]);
@@ -253,23 +280,19 @@ int main(int argc, char* const* argv)
     //printf("hello\n");
     puts("Server started");
     puts("Server is listenin");
-    pthread_mutex_init(&mutex_message, NULL);
-    sem_init(&sem_gol, 0, BUFF_SIZE);
-    sem_init(&sem_full, 0, 0);
-    recv_args_t* args = NULL;
-    args = new(send_args_t);
+    recv_args_t* args = new(send_args_t);
     if (args == NULL) {
         perror("malloc failed recv_args");
-        goto quit;
+        goto quit_noargs;;
     }
     args->server_mq = server_mq;
     args->mq_manager = mq_manager;
 
-    send_args_t* args1 = NULL;
-    args1 = new(send_args_t);
+    send_args_t* args1 = new(send_args_t);
     if (args1 == NULL) {
         perror("malloc failed send_args");
-        goto quit;
+        free(args);
+        goto quit_noargs;
     }
     args1->res_manager = res_manager;
     args1->mq_manager = mq_manager;
@@ -277,20 +300,16 @@ int main(int argc, char* const* argv)
     pthread_create(&th_send,NULL,func_send,(void*)args1);
 
     pthread_join(th_receive,NULL);
+    puts("Receive stopped");
+    pthread_cond_broadcast(&bufferHasItems);
     pthread_join(th_send,NULL);
-
-
-
-quit:
+    puts("Sending stopped");
     puts("Server quitting");
     if (args)
         free(args);
     if (args1)
         free(args1);
 quit_noargs:
-    sem_destroy(&sem_gol);
-    sem_destroy(&sem_full);
-    pthread_mutex_destroy(&mutex_message);
     resource_manager_destroy(res_manager);
     mq_manager_close_all(mq_manager);
     mq_manager_destroy(mq_manager);

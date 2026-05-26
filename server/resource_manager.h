@@ -36,10 +36,10 @@ typedef struct
     size_t active_process_count;
     size_t idx;
     resource_manager_state state;
-    size_t nr_resource_type;
+    size_t resource_type_count;
 }resource_manager;
 
-resource_manager* resource_manager_new(MQManager* manager, size_t maxResources, size_t nr_resource_type);
+resource_manager* resource_manager_new(MQManager* manager, size_t maxResources, size_t resourceTypeCount);
 void resource_manager_destroy(resource_manager* manager);
 int resource_manager_index(resource_manager* manager, const char* working_directory,size_t type_index);
 needy_resource_response_t* resource_manager_step(resource_manager* manager);

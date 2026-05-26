@@ -154,7 +154,7 @@ int main(int argc, char* const* argv) {
         json_decref(fis);
         exit(EXIT_FAILURE);
     }
-    size_t total_resource_types = nr_resources_json ? json_integer_value(nr_resources_json) : noResources;
+    size_t total_resource_types = nr_resources_json ? (size_t) json_integer_value(nr_resources_json) : noResources;
     size_t req_index;
     json_t *req_array;
     json_array_foreach(requests, req_index, req_array) {

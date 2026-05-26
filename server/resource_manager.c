@@ -54,22 +54,7 @@ static int find_process_index(resource_manager* manager, pid_t pid)
     return -1;
 }
 
-/**
- * gaseste numele unei resurse din lista de resurse a unui proces
- * @param pri
- * @param resource_name
- * @return 0 OK,-1 error
- */
-static int find_resource_in_process(process_resource_information* pri, const char* resource_name, size_t type_index)
-{
-    for (size_t i = 0; i < pri->individualResourceSize[type_index]; i++)
-    {
-        if (pri->individualResourceNames[type_index][i] &&
-            strcmp(pri->individualResourceNames[type_index][i], resource_name) == 0)
-            return (int)i;
-    }
-    return -1;
-}
+
 
 
 /**
@@ -103,12 +88,12 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
             return -1;
         }
 
-        pool->has = calloc(manager->nr_resource_type, sizeof(size_t));
-        pool->needs = calloc(manager->nr_resource_type, sizeof(size_t));
-        pool->individualResourceNames = calloc(manager->nr_resource_type, sizeof(char**));
-        pool->individualResourceSize = calloc(manager->nr_resource_type, sizeof(size_t));
+        pool->has = calloc(manager->resource_type_count, sizeof(size_t));
+        pool->needs = calloc(manager->resource_type_count, sizeof(size_t));
+        pool->individualResourceNames = calloc(manager->resource_type_count, sizeof(char**));
+        pool->individualResourceSize = calloc(manager->resource_type_count, sizeof(size_t));
 
-        for (size_t i = 0; i < manager->nr_resource_type; i++) {
+        for (size_t i = 0; i < manager->resource_type_count; i++) {
             pool->individualResourceNames[i] =calloc(INITIAL_RESOURCE_SLOTS, sizeof(char*));
             pool->individualResourceSize[i] = INITIAL_RESOURCE_SLOTS;
         }
@@ -172,11 +157,11 @@ int resource_manager_index(resource_manager* manager, const char* working_direct
  * @param maxResources
  * @return pointer manager de resurse
  */
-resource_manager* resource_manager_new(MQManager* manager, size_t maxResources, size_t nr_resource_type)
+resource_manager* resource_manager_new(MQManager* manager, size_t maxResources, size_t resourceTypeCount)
 {
     //printf("poc\n");
 
-    if (!manager || maxResources == 0 || nr_resource_type == 0) return NULL;
+    if (!manager || maxResources == 0 || resourceTypeCount == 0) return NULL;
     resource_manager* rm = calloc(1, sizeof(resource_manager));
     if (!rm) return NULL;
 
@@ -188,6 +173,7 @@ resource_manager* resource_manager_new(MQManager* manager, size_t maxResources, 
     }
 
     rm->client_manager       = manager;
+    rm->resource_type_count     = resourceTypeCount;
     rm->process_count        = 0;
     rm->active_process_count = 0;
     rm->idx                  = 0;
@@ -210,7 +196,7 @@ void resource_manager_destroy(resource_manager* manager)
         process_resource_information* pri = manager->process_resources[i];
         if (!pri) continue;
 
-        for (size_t k = 0; k < manager->nr_resource_type; k++) {
+        for (size_t k = 0; k < manager->resource_type_count; k++) {
             for (size_t j = 0; j < pri->individualResourceSize[k]; j++)
                 free(pri->individualResourceNames[k][j]);
             free(pri->individualResourceNames[k]);
@@ -252,7 +238,7 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
         if (!p) continue;
         bool needs = false;
         bool pool_has_enough = true;
-        for (size_t j = 0; j < manager->nr_resource_type; j++) {
+        for (size_t j = 0; j < manager->resource_type_count; j++) {
             if (p->needs[j] > 0) needs = true;
             if (pool->has[j] < p->needs[j]) {
                 pool_has_enough = false;
@@ -267,10 +253,10 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
 
     if (!target) return NULL;
 
-    size_t* work = calloc(manager->nr_resource_type, sizeof(size_t));
+    size_t* work = calloc(manager->resource_type_count, sizeof(size_t));
     if (!work) return NULL;
 
-    for (size_t i = 0; i < manager->nr_resource_type; i++) {
+    for (size_t i = 0; i < manager->resource_type_count; i++) {
         work[i] = pool->has[i] - target->needs[i];
     }
 
@@ -288,7 +274,7 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
             process_resource_information* p = manager->process_resources[i];
             if (!p || finish[i]) continue;
             bool can_fin=true;
-            for (size_t j = 0; j < manager->nr_resource_type; j++) {
+            for (size_t j = 0; j < manager->resource_type_count; j++) {
                 size_t curr_needs = p->needs[j];
                 if (curr_needs > work[i]) {
                     can_fin = false;
@@ -297,7 +283,7 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
             }
             if (can_fin) {
                 finish[i] = true;
-                for (size_t i = 0; i < manager->nr_resource_type; i++) {
+                for (size_t i = 0; i < manager->resource_type_count; i++) {
                     size_t curr_allocation = (p == target) ? (p->has[i] + p->needs[i]) : p->has[i];
                     work[i] += curr_allocation;
                 }
@@ -320,7 +306,7 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
         response->code = OK;
 
         size_t total_needs = 0;
-        for(size_t t = 0; t < manager->nr_resource_type; t++) {
+        for(size_t t = 0; t < manager->resource_type_count; t++) {
             total_needs += target->needs[t];
         }
 
@@ -328,7 +314,7 @@ needy_resource_response_t* resource_manager_step(resource_manager* manager)
         response->resourceNames = calloc(total_needs, sizeof(char*));
 
         size_t granted_all = 0;
-        for (int i = 0; i < manager->nr_resource_type; i++) {
+        for (size_t i = 0; i < manager->resource_type_count; i++) {
             size_t granted = 0;
             size_t needed = target->needs[i];
 
@@ -415,12 +401,12 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
             return -1;
         }
 
-        pri->has   = calloc(manager->nr_resource_type, sizeof(size_t));
-        pri->needs = calloc(manager->nr_resource_type, sizeof(size_t));
-        pri->individualResourceSize = calloc(manager->nr_resource_type, sizeof(size_t));
-        pri->individualResourceNames = calloc(manager->nr_resource_type, sizeof(char**));
+        pri->has   = calloc(manager->resource_type_count, sizeof(size_t));
+        pri->needs = calloc(manager->resource_type_count, sizeof(size_t));
+        pri->individualResourceSize = calloc(manager->resource_type_count, sizeof(size_t));
+        pri->individualResourceNames = calloc(manager->resource_type_count, sizeof(char**));
 
-        for (size_t i = 0; i < manager->nr_resource_type; i++) {
+        for (size_t i = 0; i < manager->resource_type_count; i++) {
             pri->individualResourceNames[i] = calloc(INITIAL_RESOURCE_SLOTS, sizeof(char*));
             pri->individualResourceSize[i] = INITIAL_RESOURCE_SLOTS;
         }
@@ -440,7 +426,7 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
         manager->active_process_count++;
         idx = (int)slot;
     }
-    for (int i = 0; i < manager->nr_resource_type; i++) {
+    for (size_t i = 0; i < manager->resource_type_count; i++) {
         manager->process_resources[idx]->needs[i] += wanted[i];
     }
 
@@ -468,7 +454,7 @@ int resource_manager_release(resource_manager* manager, needy_client_finalize* f
 
     process_resource_information* pri = manager->process_resources[idx];
 
-    for (size_t i = 0; i < manager->nr_resource_type; i++) {
+    for (size_t i = 0; i < manager->resource_type_count; i++) {
         for (size_t j = 0; j < pri->individualResourceSize[i]; j++)
         {
             if (!pri->individualResourceNames[i][j]) continue;

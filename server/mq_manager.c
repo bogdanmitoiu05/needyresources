@@ -36,6 +36,7 @@ mqd_t findByPid(MQManager* mgr,pid_t pid) {
             return mgr->queues[i]->queue;
         }
     }
+    return -1;
 }
 void client_conn_destroy(client_conn* conn)
 {
