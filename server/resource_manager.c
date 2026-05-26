@@ -425,8 +425,9 @@ int resource_manager_add_request(resource_manager* manager, const needy_resource
         pri->pid = pid;
         manager->process_resources[slot] = pri;
         manager->active_process_count++;
+        printf("slot: %lu\n",slot);
         for (size_t i = 0; i < manager->resource_type_count; i++) {
-            printf("slot: %lu\n",slot);
+
             manager->process_resources[slot]->max_needs[i] = wanted[i];
         }
 
