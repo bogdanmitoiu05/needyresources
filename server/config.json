@@ -5,7 +5,7 @@
     "workingDirectory": "./resources",
     "enableLiveUpdate": true,
     "maximumAllowedResources": 10,
-    "maximumClients": 6,
+    "maximumClients": 2,
     "typesOfResources": 5
   }
 }

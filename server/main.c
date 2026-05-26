@@ -76,7 +76,9 @@ void* func_receive(void* args) {
     mqd_t server_mq = recv_args->server_mq;
     char buffer[MAX_MSG_SIZE] = {0,};
 
-    while (!shouldQuit && mq_manager->active_count < mq_manager->queue_size && nr<3) {
+    int idle_seconds = 0;
+
+    while (!shouldQuit) {
         struct timespec timeout;
         clock_gettime(CLOCK_REALTIME, &timeout);
         timeout.tv_sec += 1;
@@ -89,6 +91,18 @@ void* func_receive(void* args) {
 
                 if (shouldQuit)
                     break;
+                if (mq_manager->active_count == 0) {
+                    idle_seconds++;
+                    printDbg("No clients connected. Idle for %d second(s)...", idle_seconds);
+
+                    if (idle_seconds >= 5) {
+                        printDbg("5 seconds of inactivity reached. Shutting down.");
+                        shouldQuit = true;
+                        break;
+                    }
+                } else {
+                    idle_seconds = 0;
+                }
                 errno = 0;
                 continue;
             }
@@ -96,6 +110,7 @@ void* func_receive(void* args) {
             break; //porneste procesarea
 
         }
+        idle_seconds = 0;
         needy_message_t* message = needy_message_from_string(buffer);
         printDbg("[SERVER] Received message: %s", buffer);
         ///printDbg("%s",message->message_type);
