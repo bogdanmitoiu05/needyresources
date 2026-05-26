@@ -6,7 +6,20 @@
 #include <mqueue.h>
 #include <needy.h>
 #include <stdbool.h>
-
+#define printDbg(...){\
+char __msg[1024];\
+snprintf(__msg, sizeof(__msg), __VA_ARGS__);\
+char __msg2[2000]; \
+snprintf(__msg2, sizeof(__msg2),"[Client %d]: %s\n", getpid(), __msg);\
+fputs(__msg2, stdout);\
+}
+#define printErr(...) {\
+char __msg[1024];\
+snprintf(__msg, sizeof(__msg), __VA_ARGS__);\
+char __msg2[2000]; \
+snprintf(__msg2, sizeof(__msg2),"[Client %d]: %s\n", getpid(), __msg);\
+fputs(__msg2, stderr);\
+}
 
 /***
  * Fiecare client se identifică prin intermediul ID-ului de proces (PID)
@@ -22,9 +35,7 @@ int main(int argc, char* const* argv) {
     bool version_flag = false; //dacă vedem -v, afișăm autorii și ne oprim
     char* client_workspace_path = calloc(1024, sizeof(char)); // inițializează calea de workspace
     if (client_workspace_path == NULL) {
-        char msg[64];
-        snprintf(msg, sizeof(msg), "[Client %d]: Could not allocate workspace path",my_pid);
-        fputs(msg, stderr);
+        printErr("Could not allocate workspace path");
         exit(EXIT_FAILURE);
     }
 
@@ -101,13 +112,12 @@ int main(int argc, char* const* argv) {
 
     mqd_t server_mq = mq_open(SERVER_QUEUE_NAME, O_WRONLY); //aici va scrie clientul serverului
     if (server_mq == (mqd_t)-1) {
-        char msg[64];
-        snprintf(msg, sizeof(msg), "[Client %d]: Failed to open server queue",my_pid);
-        perror(msg);mq_unlink(client_queue_name);
+        printErr("Could not open server queue");
+        perror("Details: ");mq_unlink(client_queue_name);
         exit(1);
     }
 
-    printf("Client %d started. Connecting to server...\n", my_pid);
+    printDbg("Client %d started. Connecting to server...\n", my_pid);
 
     // instanțiem un antet de verificare. Vezi libneedy/client_identification.h pentru mai multe detalii
     needy_client_identification_header* identification_header = needy_client_identification_header_new(my_pid, client_workspace_path);
@@ -121,7 +131,7 @@ int main(int argc, char* const* argv) {
     needy_message_destroy(msg);
 
     char receive_buffer[MAX_MSG_SIZE];
-    printf("[Client %d] waiting for SERVER_ACK...\n", my_pid);
+    printDbg("Waiting for server ACK...");
 
     ssize_t bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
     printf("read\n");
@@ -129,13 +139,13 @@ int main(int argc, char* const* argv) {
         needy_message_t* receivedMessage = needy_message_from_string(receive_buffer);
         if (receivedMessage) {
             needy_server_ack *msg= needy_server_ack_deserialize(receivedMessage->payload);
-            printf("[Client %d] received ack message from server(%d)\n", my_pid, msg->code);
+            printDbg("Received ACK from server with code %d", msg->code);
             needy_server_ack_destroy(msg);
         }
     }
 
     if (json_file_path==NULL) {
-        fprintf(stderr, "[Client %d]: missing JSON file parameter, provide -f <file.json>\n", my_pid);
+        printErr("Missing JSON file parameter, provide -f <file.json>");
         exit(EXIT_FAILURE);
     }
 
@@ -143,7 +153,7 @@ int main(int argc, char* const* argv) {
     json_t* fis=json_load_file(json_file_path,0,&json_error);
 
     if (!fis) {
-        fprintf(stderr, "[Client %d]: Error parsing JSON on line %d: %s\n", my_pid, json_error.line, json_error.text);
+        printErr("Error parsing JSON on line %d: %s", json_error.line, json_error.text);
         exit(EXIT_FAILURE);
     }
 
@@ -151,7 +161,7 @@ int main(int argc, char* const* argv) {
     json_t* nr_resources_json = json_object_get(fis,"nr_resources");
 
     if (!json_is_array(requests)) {
-        fprintf(stderr, "[Client %d]: 'requests' field is missing or is not an array\n", my_pid);
+        printErr("'requests' field is missing or is not an array");
         json_decref(fis);
         exit(EXIT_FAILURE);
     }
@@ -172,7 +182,7 @@ int main(int argc, char* const* argv) {
             }
         }
 
-        printf("[Client %d] requesting resources...\n", my_pid);
+        printDbg("Requesting resources...");
         // emitem o cerere de resurse pentru sine
         needy_resource_request* request = needy_client_resource_request_new(my_pid, resource_vector, total_resource_types);
 
@@ -183,7 +193,7 @@ int main(int argc, char* const* argv) {
 
 
         //asteptam mesajul. Nu continuam fara resurse
-        printf("[Client %d] waiting for RESOURCE_RESPONSE...\n", my_pid);
+        printDbg("Awaiting RESOURCE_RESPONSE");
 
         bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
         if (bytes_read >= 0) { //daca am putut receptiona mesajul
@@ -193,23 +203,22 @@ int main(int argc, char* const* argv) {
             if (receivedMessage) { //daca am putut citi mesajul
                 needy_resource_response_t* ack = needy_resource_response_deserialize(receivedMessage->payload); //deserializaează în ack
 
-                printf("[Client %d] received code from server (Response Code: %d)\n", my_pid, ack->code);
+                printDbg("Client received code %d from server", ack->code);
 
                 needy_resource_response_destroy(ack);
 
                 if (ack->code != OK && ack->code != MAX_RESOURCE_NEED_REGISTERED) {
-                    fprintf(stderr,"GOT CODE %d. Stopping \n", ack->code);
+                    printErr("Received code %d. Stopping", ack->code);
                     break;
                 }
             }
         } else {
-            char msg[64];
-            snprintf(msg, sizeof(msg), "[Client %d]: mq_receive failed",my_pid);
-            perror(msg);
+            printErr("mq_receive failed");
+            perror("Details: ");
         }
         // simulam
         // --- to be  changed ---
-        printf("[Client %d] holding resources. Processing for 10 seconds...\n", my_pid);
+        printDbg("Holding resources for 10 seconds...");
         sleep(10);
         free(resource_vector);
     }
@@ -217,7 +226,7 @@ int main(int argc, char* const* argv) {
     json_decref(fis);
 
     // am terminat procesarea
-    printf("[Client %d] processing complete. Releasing resources...\n", my_pid);
+    printDbg("Processing done. Releasing resources");
     needy_client_finalize* finalize = needy_client_finalize_new(my_pid); //trimitem instiintarea de finalziare
     needy_message_t* msg_fin = needy_message_new(CLIENT_FINALIZE,needy_client_finalize_serialize(finalize));
     send_message(server_mq, msg_fin);
@@ -230,6 +239,6 @@ int main(int argc, char* const* argv) {
     mq_unlink(client_queue_name);
     free(client_workspace_path);
     if(json_file_path) free(json_file_path);
-    printf("[Client %d] shutting down safely.\n", my_pid);
+    printf("Shutting down");
     return 0;
 }
