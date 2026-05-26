@@ -57,7 +57,7 @@ server_config_t* server_config_deserialize(json_t* json) {
         return NULL;
     }
 
-    const int success2 = json_unpack_ex(obj, &error, 0, "{s:s,s:b,s:i,s:i}",
+    const int success2 = json_unpack_ex(obj, &error, 0, "{s:s,s:b,s:i,s:i,s:i}",
         "workingDirectory", &(conf->workingDirectory),
         "enableLiveUpdate", &(conf->liveUpdate),
         "maximumAllowedResources", &(conf->maximumAllowedResources),

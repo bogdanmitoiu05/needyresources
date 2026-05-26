@@ -36,7 +36,7 @@ int main(int argc, char* const* argv) {
     size_t noResources = 2; // implicit clientul va solicita 2 resurse
     while ((opt = getopt(argc, argv, "hvi:p:r:f:")) != -1 && !stop_parse) {
         switch (opt) {
-            case 'f':
+            case 'f': // fișier js
                 json_file_path = fixed_strdup(optarg);
                 break;
             case 'p': //calea către workspace
