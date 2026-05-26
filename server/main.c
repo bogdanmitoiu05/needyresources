@@ -250,7 +250,8 @@ int main(int argc, char* const* argv)
     for(size_t i = 0; i < conf->typesOfResources; ++i){
         if ( resource_manager_index(res_manager, conf->workingDirectory,i) < 0)//loop index folders
         {
-            goto quit;
+            fputs("Failed to index resources",stderr);
+            goto quit_noargs;
         }
     }
     //printf("hello\n");
@@ -259,7 +260,8 @@ int main(int argc, char* const* argv)
     pthread_mutex_init(&mutex_message, NULL);
     sem_init(&sem_gol, 0, BUFF_SIZE);
     sem_init(&sem_full, 0, 0);
-    recv_args_t* args = malloc(sizeof(recv_args_t));
+    recv_args_t* args = NULL;
+    args = new(send_args_t);
     if (args == NULL) {
         perror("malloc failed recv_args");
         goto quit;
@@ -267,7 +269,8 @@ int main(int argc, char* const* argv)
     args->server_mq = server_mq;
     args->mq_manager = mq_manager;
 
-    send_args_t* args1 = malloc(sizeof(send_args_t));
+    send_args_t* args1 = NULL;
+    args1 = new(send_args_t);
     if (args1 == NULL) {
         perror("malloc failed send_args");
         goto quit;
@@ -284,8 +287,11 @@ int main(int argc, char* const* argv)
 
 quit:
     puts("Server quitting");
-    free(args);
-    free(args1);
+    if (args)
+        free(args);
+    if (args1)
+        free(args1);
+quit_noargs:
     sem_destroy(&sem_gol);
     sem_destroy(&sem_full);
     pthread_mutex_destroy(&mutex_message);
