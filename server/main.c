@@ -155,6 +155,12 @@ void* func_send(void* args) {
         }
 
         needy_message_t* message = share_buff[read_head];
+        if (message != NULL) {
+            printDbg("Got: %s",needy_message_to_string(message));
+        }
+        else {
+            printDbg("Got NULL");
+        }
         share_buff[read_head] = NULL;
         pthread_cond_broadcast(&bufferCanBeFilled);
         if (message && shouldQuit) {
@@ -165,7 +171,6 @@ void* func_send(void* args) {
         if (shouldQuit) {
             return NULL;
         }
-        printDbg("Got message");
         switch (message->message_type) {
             case CLIENT_CONNECTION_REQUEST:;
                 needy_client_identification_header* header = needy_client_identification_header_deserialize(message->payload);
@@ -173,11 +178,13 @@ void* func_send(void* args) {
                     needy_server_ack* ack = needy_server_ack_new(header->pid, MAX_CLIENT_LIMIT_EXCEEDED, "Server has reached maximum capacity");
                     client_conn* new_conn = client_conn_new(header);
                     needy_message_t* ack_message = needy_message_new(SERVER_ACK, needy_server_ack_serialize(ack));
-                    send_message(new_conn->queue, message);
+                    send_message(new_conn->queue, ack_message);
 
                     needy_message_destroy(ack_message);
                     needy_server_ack_destroy(ack);
                     client_conn_destroy(new_conn);
+                    printDbg("noSpace");
+                    break;
                 }
 
                 if (!header)

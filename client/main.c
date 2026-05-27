@@ -141,6 +141,9 @@ int main(int argc, char* const* argv) {
             printDbg("%s",receive_buffer);
             needy_server_ack *msg= needy_server_ack_deserialize(receivedMessage->payload);
             printDbg("Received ACK from server with code %d", msg->code);
+
+            if (msg->code != OK)
+                goto quit;
             needy_server_ack_destroy(msg);
         }
     }
@@ -203,6 +206,7 @@ int main(int argc, char* const* argv) {
             printDbg("%s",receive_buffer);
             //puts(receive_buffer);
             if (receivedMessage) { //daca am putut citi mesajul
+
                 needy_resource_response_t* ack = needy_resource_response_deserialize(receivedMessage->payload); //deserializaează în ack
 
                 printDbg("Client received code %d from server", ack->code);
@@ -236,7 +240,7 @@ int main(int argc, char* const* argv) {
     send_message(server_mq, msg_fin);
     needy_client_finalize_destroy(finalize);
 
-
+quit:
     // curatam si incheiem executia
     mq_close(server_mq);
     mq_close(client_mq);

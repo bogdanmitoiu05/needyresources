@@ -25,6 +25,7 @@ needy_server_ack* needy_server_ack_deserialize(json_t* data) {
     json_error_t error;
     char* message;
     //despachetare
+    printf("%s\n",json_dumps(data,JSON_PRESERVE_ORDER));
     int success = json_unpack_ex(data, &error, JSON_STRICT/*verifica respecatarea exacta a formatului*/, "{s:I,s:i,s:s}"/*string: long long, string: long long*/,"pid",&pid, "code",&code,"message",&message);
     if (success<0) {
         fputs("needy_client_resource_deserialize: invalid JSON",stderr);
