@@ -39,6 +39,7 @@ typedef struct {
     response_code code;
     size_t noResources;
     char** resourceNames;
+
 } needy_resource_response_t;
 
 /**

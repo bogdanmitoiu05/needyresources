@@ -7,9 +7,9 @@
 #include <needy.h>
 #include <stdbool.h>
 #define printDbg(...){\
-char __msg[1024];\
+char __msg[10024];\
 snprintf(__msg, sizeof(__msg), __VA_ARGS__);\
-char __msg2[2000]; \
+char __msg2[11000]; \
 snprintf(__msg2, sizeof(__msg2),"[Client %d]: %s\n", getpid(), __msg);\
 fputs(__msg2, stdout);\
 }
@@ -138,6 +138,7 @@ int main(int argc, char* const* argv) {
     if (bytes_read >= 0) {
         needy_message_t* receivedMessage = needy_message_from_string(receive_buffer);
         if (receivedMessage) {
+            printDbg("%s",receive_buffer);
             needy_server_ack *msg= needy_server_ack_deserialize(receivedMessage->payload);
             printDbg("Received ACK from server with code %d", msg->code);
             needy_server_ack_destroy(msg);
@@ -181,9 +182,8 @@ int main(int argc, char* const* argv) {
                 resource_vector[res_index] = (int)json_integer_value(res_val);
             }
         }
-        char mesaj[64];
-        sprintf(mesaj, "Requesting resources... %lu,%lu,%lu", resource_vector[0], resource_vector[1], resource_vector[2]);
-        printDbg(mesaj);
+
+        printDbg("Requesting resources...");
         // emitem o cerere de resurse pentru sine
         needy_resource_request* request = needy_client_resource_request_new(my_pid, resource_vector, total_resource_types);
 
@@ -200,6 +200,7 @@ int main(int argc, char* const* argv) {
         if (bytes_read >= 0) { //daca am putut receptiona mesajul
 
             needy_message_t* receivedMessage = needy_message_from_string(receive_buffer); //citeste mesajul
+            printDbg("%s",receive_buffer);
             //puts(receive_buffer);
             if (receivedMessage) { //daca am putut citi mesajul
                 needy_resource_response_t* ack = needy_resource_response_deserialize(receivedMessage->payload); //deserializaează în ack
@@ -209,11 +210,11 @@ int main(int argc, char* const* argv) {
 
 
                 if (ack->code != OK && ack->code != MAX_RESOURCE_NEED_REGISTERED) {
+
                     printErr("Received code %d. Stopping", ack->code);
                     break;
                 }
                 needy_resource_response_destroy(ack);
-
             }
         } else {
             printErr("mq_receive failed");
