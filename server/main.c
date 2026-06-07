@@ -15,6 +15,10 @@
 #include "mq_manager.h"
 #include "resource_manager.h"
 #include <response_codes.h>
+#include "read_file_request.h"
+#include "write_file_request.h"
+#include "file_request_response.h"
+
 /**
  * Sistemul se va baza pe o coadă de mesaje ce va conține toate cererile pt procesare
  *
@@ -68,6 +72,216 @@ int nr=0;
 pthread_cond_t bufferHasItems = PTHREAD_COND_INITIALIZER;
 pthread_cond_t bufferCanBeFilled = PTHREAD_COND_INITIALIZER;
 
+#define RW_BUFF_SIZE 10
+needy_message_t* read_write_buff[RW_BUFF_SIZE];
+int rw_read_head = 0;
+int rw_write_head = 0;
+pthread_mutex_t rw_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t rw_bufferHasItems = PTHREAD_COND_INITIALIZER;
+pthread_cond_t rw_bufferCanBeFilled = PTHREAD_COND_INITIALIZER;
+
+typedef enum {
+    RW_SIMULTANEOUS,
+    RW_READERS_PRIORITY,
+    RW_WRITERS_PRIORITY
+} rw_policy_t;
+
+rw_policy_t rw_policy = RW_READERS_PRIORITY; // Default policy
+
+typedef struct {
+    pthread_mutex_t rw_lock;
+    pthread_mutex_t read_count_lock;
+    int read_count;
+    // for writers priority
+    pthread_mutex_t priority_mutex;
+    pthread_cond_t can_read;
+    pthread_cond_t can_write;
+    int waiting_writers;
+    int active_writers;
+} file_lock_t;
+
+file_lock_t global_file_lock;
+
+void reader_lock(file_lock_t* lock) {
+    if (rw_policy == RW_SIMULTANEOUS) {
+        // No lock access
+        return;
+    } else if (rw_policy == RW_READERS_PRIORITY) {
+        pthread_mutex_lock(&lock->read_count_lock);
+        lock->read_count++;
+        if (lock->read_count == 1) {
+            pthread_mutex_lock(&lock->rw_lock);
+        }
+        pthread_mutex_unlock(&lock->read_count_lock);
+    } else if (rw_policy == RW_WRITERS_PRIORITY) {
+        pthread_mutex_lock(&lock->priority_mutex);
+        while (lock->waiting_writers > 0 || lock->active_writers > 0) {
+            pthread_cond_wait(&lock->can_read, &lock->priority_mutex);
+        }
+        lock->read_count++;
+        pthread_mutex_unlock(&lock->priority_mutex);
+    }
+}
+
+void reader_unlock(file_lock_t* lock) {
+    if (rw_policy == RW_SIMULTANEOUS) {
+        // No lock access
+        return;
+    } else if (rw_policy == RW_READERS_PRIORITY) {
+        pthread_mutex_lock(&lock->read_count_lock);
+        lock->read_count--;
+        if (lock->read_count == 0) {
+            pthread_mutex_unlock(&lock->rw_lock);
+        }
+        pthread_mutex_unlock(&lock->read_count_lock);
+    } else if (rw_policy == RW_WRITERS_PRIORITY) {
+        pthread_mutex_lock(&lock->priority_mutex);
+        lock->read_count--;
+        if (lock->read_count == 0 && lock->waiting_writers > 0) {
+            pthread_cond_signal(&lock->can_write);
+        }
+        pthread_mutex_unlock(&lock->priority_mutex);
+    }
+}
+
+void writer_lock(file_lock_t* lock) {
+    if (rw_policy == RW_SIMULTANEOUS) {
+        // No lock access
+        return;
+    } else if (rw_policy == RW_READERS_PRIORITY) {
+        pthread_mutex_lock(&lock->rw_lock);
+    } else if (rw_policy == RW_WRITERS_PRIORITY) {
+        pthread_mutex_lock(&lock->priority_mutex);
+        lock->waiting_writers++;
+        while (lock->read_count > 0 || lock->active_writers > 0) {
+            pthread_cond_wait(&lock->can_write, &lock->priority_mutex);
+        }
+        lock->waiting_writers--;
+        lock->active_writers = 1;
+        pthread_mutex_unlock(&lock->priority_mutex);
+    }
+}
+
+void writer_unlock(file_lock_t* lock) {
+    if (rw_policy == RW_SIMULTANEOUS) {
+        // No lock access
+        return;
+    } else if (rw_policy == RW_READERS_PRIORITY) {
+        pthread_mutex_unlock(&lock->rw_lock);
+    } else if (rw_policy == RW_WRITERS_PRIORITY) {
+        pthread_mutex_lock(&lock->priority_mutex);
+        lock->active_writers = 0;
+        if (lock->waiting_writers > 0) {
+            pthread_cond_signal(&lock->can_write);
+        } else {
+            pthread_cond_broadcast(&lock->can_read);
+        }
+        pthread_mutex_unlock(&lock->priority_mutex);
+    }
+}
+
+typedef struct {
+    needy_message_t* message;
+    MQManager* mq_manager;
+} thread_args_t;
+
+void* reader_thread(void* args) {
+    thread_args_t* thread_args = (thread_args_t*)args;
+    needy_read_file_request* request = needy_read_file_request_deserialize(thread_args->message->payload);
+
+    file_lock_t* lock = &global_file_lock;
+    reader_lock(lock);
+
+    // Critical section for reading
+    printDbg("Reading file: %s", request->file_name);
+    FILE* f = fopen(request->file_name, "r");
+    char* contents = NULL;
+    if (f) {
+        fseek(f, 0, SEEK_END);
+        long length = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        contents = malloc(length + 1);
+        if (contents) {
+            fread(contents, 1, length, f);
+            contents[length] = '\0';
+        }
+        fclose(f);
+    }
+
+    needy_file_request_response* response = needy_file_request_response_new(OK, contents);
+    needy_message_t* response_message = needy_message_new(FILE_RESPONSE, needy_file_request_response_serialize(response));
+    send_message(findByPid(thread_args->mq_manager, request->pid), response_message);
+
+    if (contents) {
+        free(contents);
+    }
+    needy_file_request_response_destroy(response);
+    needy_message_destroy(response_message);
+
+    reader_unlock(lock);
+
+    needy_read_file_request_destroy(request);
+    free(thread_args);
+    return NULL;
+}
+
+void* writer_thread(void* args) {
+    thread_args_t* thread_args = (thread_args_t*)args;
+    needy_write_file_request* request = needy_write_file_request_deserialize(thread_args->message->payload);
+
+    file_lock_t* lock = &global_file_lock;
+    writer_lock(lock);
+
+    // Critical section for writing
+    printDbg("Writing to file: %s", request->file_name);
+
+    const char* mode_str = (request->mode == WRITE_MODE_APPEND) ? "a" : "w";
+    FILE* f = fopen(request->file_name, mode_str);
+    if (f) {
+        if (request->content) {
+            fwrite(request->content, 1, strlen(request->content), f);
+        }
+        fclose(f);
+    } else {
+        printErr("Failed to open file %s for writing", request->file_name);
+    }
+
+
+    writer_unlock(lock);
+
+    needy_write_file_request_destroy(request);
+    free(thread_args);
+    return NULL;
+}
+
+void process_file_requests(MQManager* mq_manager) {
+    pthread_t thread_pool[RW_BUFF_SIZE];
+    int thread_count = 0;
+
+    pthread_mutex_lock(&rw_mutex);
+    for (int i = 0; i < RW_BUFF_SIZE; i++) {
+        if (read_write_buff[i] != NULL) {
+            thread_args_t* args = malloc(sizeof(thread_args_t));
+            args->message = read_write_buff[i];
+            args->mq_manager = mq_manager;
+
+            if (args->message->message_type == READ_REQUEST) {
+                pthread_create(&thread_pool[thread_count++], NULL, reader_thread, args);
+            } else if (args->message->message_type == WRITE_REQUEST) {
+                pthread_create(&thread_pool[thread_count++], NULL, writer_thread, args);
+            }
+            read_write_buff[i] = NULL;
+        }
+    }
+    rw_read_head = 0;
+    rw_write_head = 0;
+    pthread_cond_broadcast(&rw_bufferCanBeFilled);
+    pthread_mutex_unlock(&rw_mutex);
+
+    for (int i = 0; i < thread_count; i++) {
+        pthread_join(thread_pool[i], NULL);
+    }
+}
 
 
 void* func_receive(void* args) {
@@ -169,9 +383,32 @@ void* func_send(void* args) {
         read_head = (read_head+1)%BUFF_SIZE;
         pthread_mutex_unlock(&mutex_message);
         if (shouldQuit) {
+            if (message) needy_message_destroy(message);
             return NULL;
         }
+        if (!message) continue;
+
         switch (message->message_type) {
+            case READ_REQUEST:
+            case WRITE_REQUEST:
+                pthread_mutex_lock(&rw_mutex);
+                while(read_write_buff[rw_write_head] != NULL && !shouldQuit) {
+                    pthread_cond_wait(&rw_bufferCanBeFilled, &rw_mutex);
+                }
+                if(shouldQuit) {
+                    pthread_mutex_unlock(&rw_mutex);
+                    needy_message_destroy(message);
+                    break;
+                }
+                read_write_buff[rw_write_head] = message;
+                rw_write_head = (rw_write_head + 1) % RW_BUFF_SIZE;
+
+                if (rw_write_head == rw_read_head) { // Buffer is full
+                    process_file_requests(mq_manager);
+                }
+                pthread_cond_broadcast(&rw_bufferHasItems);
+                pthread_mutex_unlock(&rw_mutex);
+                break;
             case CLIENT_CONNECTION_REQUEST:;
                 needy_client_identification_header* header = needy_client_identification_header_deserialize(message->payload);
                 if(!mq_manager_has_space(mq_manager)){
@@ -203,6 +440,7 @@ void* func_send(void* args) {
 
                 needy_message_destroy(ack_message);
                 needy_server_ack_destroy(ack);
+                needy_message_destroy(message);
                 break;
             case RESOURCE_REQUEST:;
                 printDbg("rr");
@@ -214,8 +452,8 @@ void* func_send(void* args) {
 
                 if(request->noResources != res_manager->resource_type_count){ // verifica dimensiunea vectorului sa fie conforma cu ce se asteapta serverul
                     needy_resource_response_t* ack = needy_resource_response_new(INCORRECT_NUMBER_OF_RESOURCES, 0, NULL);
-                    needy_message_t* message = needy_message_new(RESOURCE_RESPONSE, needy_resource_response_serialize(ack));
-                    send_message(findByPid(mq_manager,request->pid),message);
+                    needy_message_t* msg = needy_message_new(RESOURCE_RESPONSE, needy_resource_response_serialize(ack));
+                    send_message(findByPid(mq_manager,request->pid),msg);
 
                     needy_client_resource_request_destroy(request);
                     needy_resource_response_destroy(ack);
@@ -238,7 +476,7 @@ void* func_send(void* args) {
 
                 needy_message_t* msg = needy_message_new(RESOURCE_RESPONSE,needy_resource_response_serialize(response));
                 send_message(findByPid(mq_manager,request->pid), msg);
-
+                needy_message_destroy(message);
                 break;
             case CLIENT_FINALIZE:;
                 printDbg("cf");
@@ -250,18 +488,29 @@ void* func_send(void* args) {
                 }
                 resource_manager_release(res_manager, finalizeMsg);
                 needy_client_finalize_destroy(finalizeMsg);
+                needy_message_destroy(message);
                 break;
             default:
                 printErr("ERROR: Invalid message received");
+                needy_message_destroy(message);
                 break;
         }
     }
     for (int i=0;i<BUFF_SIZE;i++) {
-        free(share_buff[i]);
+        if(share_buff[i]) free(share_buff[i]);
     }
     return NULL;
 }
 static server_config_t* conf = NULL;
+
+void cleanup_locks() {
+    pthread_mutex_destroy(&global_file_lock.rw_lock);
+    pthread_mutex_destroy(&global_file_lock.read_count_lock);
+    pthread_mutex_destroy(&global_file_lock.priority_mutex);
+    pthread_cond_destroy(&global_file_lock.can_read);
+    pthread_cond_destroy(&global_file_lock.can_write);
+}
+
 int main(int argc, char* const* argv)
 {
     signal(SIGINT, terminate_handler);
@@ -274,7 +523,7 @@ int main(int argc, char* const* argv)
     strcpy(config_path, "/IdeaProjects/needyresources/files/config.json");
 
     bool stop_parse = false;
-    while ((opt = getopt(argc, argv, "hvc:")) != -1 && !stop_parse) {
+    while ((opt = getopt(argc, argv, "hvc:p:")) != -1 && !stop_parse) {
         switch (opt) {
             case 'c':
                 strcpy(config_path, optarg);
@@ -283,9 +532,21 @@ int main(int argc, char* const* argv)
                 version_flag = true;
                 stop_parse=true;
                 break;
+            case 'p':
+                if (strcmp(optarg, "simultaneous") == 0) {
+                    rw_policy = RW_SIMULTANEOUS;
+                } else if (strcmp(optarg, "readers") == 0) {
+                    rw_policy = RW_READERS_PRIORITY;
+                } else if (strcmp(optarg, "writers") == 0) {
+                    rw_policy = RW_WRITERS_PRIORITY;
+                } else {
+                    fprintf(stderr, "Invalid policy: %s. Available policies: simultaneous, readers, writers.\n", optarg);
+                    exit(EXIT_FAILURE);
+                }
+                break;
             case 'h':
             default: /* '?' */
-                fprintf(stderr, "Usage: %s [-c /path/to/config.json] \n",
+                fprintf(stderr, "Usage: %s [-c /path/to/config.json] [-p <policy>]\n",
                         argv[0]);
                 exit(EXIT_FAILURE);
         }
@@ -302,6 +563,16 @@ int main(int argc, char* const* argv)
     {
         exit(EXIT_FAILURE);
     }
+
+    pthread_mutex_init(&global_file_lock.rw_lock, NULL);
+    pthread_mutex_init(&global_file_lock.read_count_lock, NULL);
+    global_file_lock.read_count = 0;
+    pthread_mutex_init(&global_file_lock.priority_mutex, NULL);
+    pthread_cond_init(&global_file_lock.can_read, NULL);
+    pthread_cond_init(&global_file_lock.can_write, NULL);
+    global_file_lock.waiting_writers = 0;
+    global_file_lock.active_writers = 0;
+
     /***
      * Vom procesa toate cereile ce vin pe coada de mesaje aferentă serverului.
      *
@@ -354,6 +625,7 @@ int main(int argc, char* const* argv)
     pthread_join(th_receive,NULL);
     printDbg("Receive stopped");
     pthread_cond_broadcast(&bufferHasItems);
+    pthread_cond_broadcast(&rw_bufferHasItems);
     pthread_join(th_send,NULL);
     printDbg("Sending stopped");
     printDbg("Server quitting");
@@ -362,6 +634,7 @@ int main(int argc, char* const* argv)
     if (args1)
         free(args1);
 quit_noargs:
+    cleanup_locks();
     resource_manager_destroy(res_manager);
     mq_manager_close_all(mq_manager);
     mq_manager_destroy(mq_manager);

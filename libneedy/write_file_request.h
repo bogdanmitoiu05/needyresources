@@ -7,12 +7,19 @@
 #include <unistd.h>
 #include "utils.h"
 
+typedef enum {
+    WRITE_MODE_WRITE,
+    WRITE_MODE_APPEND
+} needy_write_mode;
+
 /**
  * Structura ce definește urmatorul format JSON
  *
  * {
  *      "pid": $pid,
- *      "file_name": "$file_name"
+ *      "file_name": "$file_name",
+ *      "content": "$content",
+ *      "mode": $mode
  * }
  *
  *
@@ -21,15 +28,19 @@
 typedef struct {
     pid_t pid;
     char* file_name;
+    char* content;
+    needy_write_mode mode;
 } needy_write_file_request;
 
 /**
  * Instanțiază un nou obiect de tipul needy_write_file_request
  * @param pid PID-ul procesului
  * @param file_name Numele fișierului
+ * @param content Continutul de scris
+ * @param mode Modul (write sau append)
  * @return needy_write_file_request nou sau NULL dacă alocarea a eșuat
  */
-needy_write_file_request* needy_write_file_request_new(pid_t pid, const char* file_name);
+needy_write_file_request* needy_write_file_request_new(pid_t pid, const char* file_name, const char* content, needy_write_mode mode);
 
 /**
  *
