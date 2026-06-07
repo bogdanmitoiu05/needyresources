@@ -1,0 +1,6 @@
+{
+  "type": "write",
+  "file_name": "f1.txt",
+  "content": "Client 4 appended",
+  "mode": "A"
+}
