@@ -145,6 +145,7 @@ int main(int argc, char* const* argv) {
             if (msg->code != OK)
                 goto quit;
             needy_server_ack_destroy(msg);
+            needy_message_destroy(receivedMessage);
         }
     }
 
@@ -171,64 +172,107 @@ int main(int argc, char* const* argv) {
     }
     size_t total_resource_types = nr_resources_json ? (size_t) json_integer_value(nr_resources_json) : noResources;
     size_t req_index;
-    json_t *req_array;
-    json_array_foreach(requests, req_index, req_array) {
-        if (!json_is_array(req_array)) continue;
+    json_t *req_val;
 
-        // un vectorul de resurse din JSON
-        size_t *resource_vector = calloc(total_resource_types, sizeof(int));
-        size_t res_index;
-        json_t *res_val;
+    json_array_foreach(requests, req_index, req_val) {
+        if (json_is_array(req_val)) {
 
-        json_array_foreach(req_array, res_index, res_val) {
-            if (res_index < total_resource_types) {
-                resource_vector[res_index] = (int)json_integer_value(res_val);
-            }
-        }
+            size_t *resource_vector = calloc(total_resource_types, sizeof(int));
+            size_t res_index;
+            json_t *res_val;
 
-        printDbg("Requesting resources...");
-        // emitem o cerere de resurse pentru sine
-        needy_resource_request* request = needy_client_resource_request_new(my_pid, resource_vector, total_resource_types);
-
-        // impacheteaza si trimite
-        needy_message_t* requestMsg = needy_message_new(RESOURCE_REQUEST, needy_client_resource_request_serialize(request));
-        send_message(server_mq, requestMsg);
-        needy_client_resource_request_destroy(request);
-
-
-        //asteptam mesajul. Nu continuam fara resurse
-        printDbg("Awaiting RESOURCE_RESPONSE");
-
-        bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
-        if (bytes_read >= 0) { //daca am putut receptiona mesajul
-
-            needy_message_t* receivedMessage = needy_message_from_string(receive_buffer); //citeste mesajul
-            printDbg("%s",receive_buffer);
-            //puts(receive_buffer);
-            if (receivedMessage) { //daca am putut citi mesajul
-
-                needy_resource_response_t* ack = needy_resource_response_deserialize(receivedMessage->payload); //deserializaează în ack
-
-                printDbg("Client received code %d from server", ack->code);
-
-
-
-                if (ack->code != OK && ack->code != MAX_RESOURCE_NEED_REGISTERED) {
-
-                    printErr("Received code %d. Stopping", ack->code);
-                    break;
+            json_array_foreach(req_val, res_index, res_val) {
+                if (res_index < total_resource_types) {
+                    resource_vector[res_index] = (int)json_integer_value(res_val);
                 }
-                needy_resource_response_destroy(ack);
             }
-        } else {
-            printErr("mq_receive failed");
-            perror("Details: ");
+
+            printDbg("Requesting resources...");
+
+            needy_resource_request* request = needy_client_resource_request_new(my_pid, resource_vector, total_resource_types);
+
+            // impacheteaza si trimite
+            needy_message_t* requestMsg = needy_message_new(RESOURCE_REQUEST, needy_client_resource_request_serialize(request));
+            send_message(server_mq, requestMsg);
+            needy_client_resource_request_destroy(request);
+            needy_message_destroy(requestMsg);
+
+
+            //asteptam mesajul. Nu continuam fara resurse
+            printDbg("Awaiting RESOURCE_RESPONSE");
+
+            bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
+            if (bytes_read >= 0) { //daca am putut receptiona mesajul
+
+                needy_message_t* receivedMessage = needy_message_from_string(receive_buffer); //citeste mesajul
+                printDbg("%s",receive_buffer);
+                //puts(receive_buffer);
+                if (receivedMessage) { //daca am putut citi mesajul
+
+                    needy_resource_response_t* ack = needy_resource_response_deserialize(receivedMessage->payload); //deserializaează în ack
+
+                    printDbg("Client received code %d from server", ack->code);
+
+                    if (ack->code != OK && ack->code != MAX_RESOURCE_NEED_REGISTERED) {
+                        printErr("Received code %d. Stopping", ack->code);
+                        needy_resource_response_destroy(ack);
+                        needy_message_destroy(receivedMessage);
+                        break;
+                    }
+                    needy_resource_response_destroy(ack);
+                    needy_message_destroy(receivedMessage);
+                }
+            } else {
+                printErr("mq_receive failed");
+                perror("Details: ");
+            }
+            // simulam
+            // --- to be  changed ---
+            printDbg("Holding resources for 10 seconds...");
+            sleep(10);
+            free(resource_vector);
+        } else if (json_is_object(req_val)) {
+            json_t* type_val = json_object_get(req_val, "type");
+            if (!type_val || !json_is_string(type_val)) continue;
+            const char* type_str = json_string_value(type_val);
+
+            if (strcmp(type_str, "read") == 0) {
+                const char* file_name = json_string_value(json_object_get(req_val, "file_name"));
+                if (file_name) {
+                    printDbg("Requesting read for file: %s", file_name);
+                    needy_read_file_request* request = needy_read_file_request_new(my_pid, file_name);
+                    needy_message_t* requestMsg = needy_message_new(READ_REQUEST, needy_read_file_request_serialize(request));
+                    send_message(server_mq, requestMsg);
+                    needy_read_file_request_destroy(request);
+                    needy_message_destroy(requestMsg);
+
+                    // Await response
+                    bytes_read = mq_receive(client_mq, receive_buffer, MAX_MSG_SIZE, NULL);
+                    if (bytes_read >= 0) {
+                        needy_message_t* receivedMessage = needy_message_from_string(receive_buffer);
+                        if (receivedMessage && receivedMessage->message_type == FILE_RESPONSE) {
+                            needy_file_request_response* resp = needy_file_request_response_deserialize(receivedMessage->payload);
+                            printDbg("Read response code: %d, content: %s", resp->code, resp->file_contents ? resp->file_contents : "");
+                            needy_file_request_response_destroy(resp);
+                        }
+                        if (receivedMessage) needy_message_destroy(receivedMessage);
+                    }
+                }
+            } else if (strcmp(type_str, "write") == 0) {
+                const char* file_name = json_string_value(json_object_get(req_val, "file_name"));
+                const char* content = json_string_value(json_object_get(req_val, "content"));
+                int mode = json_integer_value(json_object_get(req_val, "mode")); // 0 for write, 1 for append
+
+                if (file_name) {
+                    printDbg("Requesting write for file: %s", file_name);
+                    needy_write_file_request* request = needy_write_file_request_new(my_pid, file_name, content, (needy_write_mode)mode);
+                    needy_message_t* requestMsg = needy_message_new(WRITE_REQUEST, needy_write_file_request_serialize(request));
+                    send_message(server_mq, requestMsg);
+                    needy_write_file_request_destroy(request);
+                    needy_message_destroy(requestMsg);
+                }
+            }
         }
-        // simulam
-        // --- to be  changed ---
-        printDbg("Holding resources for 10 seconds...");
-        sleep(10);
-        free(resource_vector);
     }
     //curat json
     json_decref(fis);
@@ -239,6 +283,7 @@ int main(int argc, char* const* argv) {
     needy_message_t* msg_fin = needy_message_new(CLIENT_FINALIZE,needy_client_finalize_serialize(finalize));
     send_message(server_mq, msg_fin);
     needy_client_finalize_destroy(finalize);
+    needy_message_destroy(msg_fin);
 
 quit:
     // curatam si incheiem executia

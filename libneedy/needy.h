@@ -23,5 +23,8 @@
 #include "message_queue.h"
 #include "resource_response.h"
 #include "utils.h"
+#include "file_request_response.h"
+#include "read_file_request.h"
+#include "write_file_request.h"
 
 #endif //NEEDYRESOURCES_NEEDY_H
