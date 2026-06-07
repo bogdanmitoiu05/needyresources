@@ -20,7 +20,7 @@ needy_read_file_request* needy_read_file_request_deserialize(json_t* data) {
     const char* file_name = NULL;
     json_error_t error;
 
-    int success = json_unpack_ex(data, &error, JSON_STRICT, "{s:I, s:s}","pid",&pid, "file_name", &file_name);
+    int success = json_unpack_ex(data, &error, JSON_STRICT, "{s:i, s:s}","pid",&pid, "file_name", &file_name);
     if (success<0) {
         fputs("needy_read_file_request_deserialize: invalid JSON",stderr);
         JSON_ERROR_PRINTF(error);
@@ -33,7 +33,7 @@ json_t* needy_read_file_request_serialize(const needy_read_file_request* this) {
     ENSURE_NOTNULL_MSG_RNULL(this, "needy_read_file_request_serialize: NULL pointer passed");
 
     json_error_t error;
-    json_t* result = json_pack_ex(&error, 0, "{s:I, s:s}","pid",&this->pid, "file_name", this->file_name);
+    json_t* result = json_pack_ex(&error, 0, "{s:i, s:s}","pid",this->pid, "file_name", this->file_name);
     if (!result) {
         fputs("needy_read_file_request_serialize: JSON Error",stderr);
         JSON_ERROR_PRINTF(error);

@@ -72,7 +72,7 @@ int nr=0;
 pthread_cond_t bufferHasItems = PTHREAD_COND_INITIALIZER;
 pthread_cond_t bufferCanBeFilled = PTHREAD_COND_INITIALIZER;
 
-#define RW_BUFF_SIZE 10
+#define RW_BUFF_SIZE 1
 needy_message_t* read_write_buff[RW_BUFF_SIZE];
 int rw_read_head = 0;
 int rw_write_head = 0;
@@ -225,6 +225,8 @@ void* reader_thread(void* args) {
     return NULL;
 }
 
+
+
 void* writer_thread(void* args) {
     thread_args_t* thread_args = (thread_args_t*)args;
     needy_write_file_request* request = needy_write_file_request_deserialize(thread_args->message->payload);
@@ -255,10 +257,10 @@ void* writer_thread(void* args) {
 }
 
 void process_file_requests(MQManager* mq_manager) {
+    printDbg("Processing file requests");
     pthread_t thread_pool[RW_BUFF_SIZE];
     int thread_count = 0;
 
-    pthread_mutex_lock(&rw_mutex);
     for (int i = 0; i < RW_BUFF_SIZE; i++) {
         if (read_write_buff[i] != NULL) {
             thread_args_t* args = malloc(sizeof(thread_args_t));
@@ -268,9 +270,13 @@ void process_file_requests(MQManager* mq_manager) {
             if (args->message->message_type == READ_REQUEST) {
                 pthread_create(&thread_pool[thread_count++], NULL, reader_thread, args);
             } else if (args->message->message_type == WRITE_REQUEST) {
+                printDbg("Writing");
                 pthread_create(&thread_pool[thread_count++], NULL, writer_thread, args);
             }
             read_write_buff[i] = NULL;
+        }
+        else {
+            printErr("read_write_buff is NULL");
         }
     }
     rw_read_head = 0;
@@ -503,7 +509,7 @@ void* func_send(void* args) {
 }
 static server_config_t* conf = NULL;
 
-void cleanup_locks() {
+void cleanup_locks(void) {
     pthread_mutex_destroy(&global_file_lock.rw_lock);
     pthread_mutex_destroy(&global_file_lock.read_count_lock);
     pthread_mutex_destroy(&global_file_lock.priority_mutex);

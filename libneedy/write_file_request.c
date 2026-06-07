@@ -25,7 +25,7 @@ needy_write_file_request* needy_write_file_request_deserialize(json_t* data) {
     int mode = 0;
     json_error_t error;
 
-    int success = json_unpack_ex(data, &error, JSON_STRICT , "{s:I, s:s, s:s, s:i}","pid",&pid, "file_name", &file_name, "content", &content, "mode", &mode);
+    int success = json_unpack_ex(data, &error, JSON_STRICT , "{s:i, s:s, s:s, s:i}","pid",&pid, "file_name", &file_name, "content", &content, "mode", &mode);
     if (success<0) {
         fputs("needy_write_file_request_deserialize: invalid JSON",stderr);
         JSON_ERROR_PRINTF(error);
@@ -39,7 +39,7 @@ json_t* needy_write_file_request_serialize(const needy_write_file_request* this)
     ENSURE_NOTNULL_MSG_RNULL(this, "needy_write_file_request_serialize: NULL pointer passed");
 
     json_error_t error;
-    json_t* result = json_pack_ex(&error, 0, "{s:I, s:s, s:s, s:i}","pid",&this->pid, "file_name", this->file_name, "content", this->content, "mode", (int)this->mode);
+    json_t* result = json_pack_ex(&error, 0, "{s:i, s:s, s:s, s:i}","pid",this->pid, "file_name", this->file_name, "content", this->content, "mode", (int)this->mode);
     if (!result) {
         fputs("needy_write_file_request_serialize: JSON Error",stderr);
         JSON_ERROR_PRINTF(error);
