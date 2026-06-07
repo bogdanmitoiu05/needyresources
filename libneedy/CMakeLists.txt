@@ -12,6 +12,12 @@ add_library(needy client_identification.c
         message_type.c
         message_queue.c
         message_queue.h
+        file_request_response.c
+        file_request_response.h
+        read_file_request.c
+        read_file_request.h
+        write_file_request.c
+        write_file_request.h
         resource_response.c
         resource_response.h)
 target_sources(needy PUBLIC FILE_SET HEADERS TYPE HEADERS FILES needy.h client_identification.h resource_request.h message_type.h message.h response_codes.h BASE_DIRS .)
