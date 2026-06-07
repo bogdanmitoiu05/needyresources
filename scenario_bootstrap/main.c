@@ -12,9 +12,9 @@
 #include <unistd.h>
 #include <jansson.h>
 
-#define MAX_CLIENTS 10
+#define MAX_CLIENTS 30
 #define SERVER_START_DELAY_SECONDS 1
-#define CLIENT_TIMEOUT_SECONDS 20
+#define CLIENT_TIMEOUT_SECONDS 120
 
 typedef struct {
     int id;
@@ -100,6 +100,10 @@ int main(void) {
 
     printf("[BOOTSTRAP] Starting server...\n");
     pid_t server_pid = start_process(server_argv);
+    if (server_pid <= 0) {
+    fprintf(stderr, "[BOOTSTRAP] Could not start server\n");
+    return EXIT_FAILURE;
+}
 
     if (server_pid < 0) {
         return EXIT_FAILURE;
@@ -130,6 +134,14 @@ int main(void) {
     }
 
     size_t client_count = json_array_size(clients);
+    if (client_count > MAX_CLIENTS) {
+    fprintf(stderr,
+            "[BOOTSTRAP] Too many clients (%zu). Maximum is %d\n",
+            client_count,
+            MAX_CLIENTS);
+    json_decref(scenario_json);
+    return EXIT_FAILURE;
+}
 
     client_scenario_t scenario[MAX_CLIENTS];
     pid_t client_pids[MAX_CLIENTS];
@@ -182,8 +194,13 @@ int main(void) {
         );
 
         client_pids[index] = start_process(client_argv);
+        if (client_pids[index] <= 0) {
+            fprintf(stderr,
+            "[BOOTSTRAP] Failed to start client %d\n",
+            scenario[index].id);
+}
 
-        sleep(1);
+        
     }
 
     for (size_t i = 0; i < client_count; i++) {
@@ -193,9 +210,11 @@ int main(void) {
     json_decref(scenario_json);
 
     printf("[BOOTSTRAP] Stopping server...\n");
-    kill(server_pid, SIGTERM);
-    waitpid(server_pid, NULL, 0);
+    if (kill(server_pid, SIGTERM) < 0) {
+    perror("[BOOTSTRAP] Failed to stop server");
+    }
 
+    waitpid(server_pid, NULL, 0);
 
     printf("[BOOTSTRAP] Scenario finished.\n");
 

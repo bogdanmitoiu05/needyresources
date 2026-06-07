@@ -1,7 +1,6 @@
 {
-  "nr_resources": 3,
-  "requests": [
-    [2,2,2],
-    [1,1,0]
-  ]
+  "type": "write",
+  "file_name": "f3.txt",
+  "content": "Client 3 wrote this",
+  "mode": "A"
 }
