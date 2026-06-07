@@ -1,8 +1,10 @@
 {
   "requests": [
     {
-      "type": "read",
-      "file_name": "f3.txt"
+      "type": "write",
+      "file_name": "f1.txt",
+      "content": "Client 6 wrote this",
+      "mode": "W"
     }
   ]
 }

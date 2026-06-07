@@ -1,5 +1,6 @@
 {
-  "server_policy": "simultaneous",
+  "server_policy": "writers",
+  "scheduling_policy": "none",
   "clients": [
     {
       "id": 1,

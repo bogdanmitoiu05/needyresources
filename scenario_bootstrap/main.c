@@ -91,13 +91,7 @@ static void wait_for_client(pid_t pid, int client_id) {
 int main(void) {
     printf("[BOOTSTRAP] Starting beta scenario...\n");
 
-
-
-
-
-
-
-        json_error_t error;
+    json_error_t error;
     json_t *scenario_json = json_load_file(
         "/IdeaProjects/needyresources/files/scenarios/scenario_1.json",
         0,
@@ -113,12 +107,19 @@ int main(void) {
 
     json_t *clients = json_object_get(scenario_json, "clients");
     json_t *server_policy = json_object_get(scenario_json,"server_policy");
+    json_t *server_sched = json_object_get(scenario_json,"schedulin");
     if (!json_is_string(server_policy)) {
         fprintf(stderr, "[BOOTSTRAP] No server policy set\n");
         json_decref(scenario_json);
         return EXIT_FAILURE;
     }
+    if (!json_is_string(server_sched)) {
+        fprintf(stderr, "[BOOTSTRAP] No server sched set\n");
+        json_decref(scenario_json);
+        return EXIT_FAILURE;
+    }
     char *const server_policy_str = strdup(json_string_value(server_policy));
+    char *const server_sched_str = strdup(json_string_value(server_sched));
     if (!json_is_array(clients)) {
         fprintf(stderr, "[BOOTSTRAP] Invalid clients array\n");
         json_decref(scenario_json);
@@ -146,6 +147,8 @@ int main(void) {
         "/IdeaProjects/needyresources/files/config.json",
         "-p",
         server_policy_str,
+        "-s",
+        server_sched_str,
         NULL
     };
     printf("[BOOTSTRAP] Starting server...\n");

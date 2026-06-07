@@ -63,7 +63,7 @@ typedef struct {
     MQManager *mq_manager;
     resource_manager* res_manager;
 } send_args_t;
-#define BUFF_SIZE 6
+#define BUFF_SIZE 6 //nr. threaduri pool
 needy_message_t* share_buff[BUFF_SIZE];
 int read_head=0;
 int write_head=0;
@@ -72,7 +72,7 @@ int nr=0;
 pthread_cond_t bufferHasItems = PTHREAD_COND_INITIALIZER;
 pthread_cond_t bufferCanBeFilled = PTHREAD_COND_INITIALIZER;
 
-#define RW_BUFF_SIZE 6
+#define RW_BUFF_SIZE 6 // marimea mesajelor dintr-un batch
 needy_message_t* read_write_buff[RW_BUFF_SIZE];
 int rw_read_head = 0;
 int rw_write_head = 0;
@@ -86,8 +86,14 @@ typedef enum {
     RW_WRITERS_PRIORITY
 } rw_policy_t;
 
-rw_policy_t rw_policy = RW_READERS_PRIORITY; // Default policy
+typedef enum {
+    RW_NONE,
+    RW_READERS_FIRST,
+    RW_WRITERS_FIRST,
+} rw_scheduling_policy_t;
 
+rw_policy_t rw_policy = RW_READERS_PRIORITY; // Default policy
+rw_scheduling_policy_t scheduling_policy = RW_NONE;
 typedef struct {
     pthread_mutex_t rw_lock;
     pthread_mutex_t read_count_lock;
@@ -235,7 +241,7 @@ void* writer_thread(void* args) {
     writer_lock(lock);
 
     // Critical section for writing
-    printDbg("Writing to file: %s", request->file_name);
+    printDbg("Writing to file %s: %s", request->file_name,request->content);
 
     const char* mode_str = (request->mode == WRITE_MODE_APPEND) ? "a" : "w";
     FILE* f = fopen(request->file_name, mode_str);
@@ -255,12 +261,32 @@ void* writer_thread(void* args) {
     free(thread_args);
     return NULL;
 }
+int comp(const void *a, const void *b) {
 
+    needy_message_t* msg_a = (needy_message_t*)a;
+    needy_message_t* msg_b = (needy_message_t*)b;
+    if (msg_a->message_type == msg_b->message_type) {
+        return 0;
+    }
+    if (scheduling_policy == RW_READERS_FIRST) {
+        if (msg_a->message_type == READ_REQUEST) {
+            return 1;
+        }
+        return -1;
+    }
+    if (msg_a->message_type == WRITE_REQUEST) {
+        return 1;
+    }
+    return -1;
+
+}
 void process_file_requests(MQManager* mq_manager) {
     printDbg("Processing file requests");
     pthread_t thread_pool[RW_BUFF_SIZE];
     int thread_count = 0;
-
+    if (scheduling_policy != RW_NONE) {
+        qsort(read_write_buff, RW_BUFF_SIZE, sizeof(read_write_buff[0]), comp);
+    }
     for (int i = 0; i < RW_BUFF_SIZE; i++) {
         if (read_write_buff[i] != NULL) {
             thread_args_t* args = malloc(sizeof(thread_args_t));
@@ -529,7 +555,7 @@ int main(int argc, char* const* argv)
     strcpy(config_path, "/IdeaProjects/needyresources/files/config.json");
 
     bool stop_parse = false;
-    while ((opt = getopt(argc, argv, "hvc:p:")) != -1 && !stop_parse) {
+    while ((opt = getopt(argc, argv, "hvc:p:s:")) != -1 && !stop_parse) {
         switch (opt) {
             case 'c':
                 strcpy(config_path, optarg);
@@ -550,6 +576,21 @@ int main(int argc, char* const* argv)
                     exit(EXIT_FAILURE);
                 }
                 break;
+            case 's':
+                if (strcmp(optarg,"readers") == 0) {
+                    scheduling_policy = RW_READERS_FIRST;
+                }
+                else if (strcmp(optarg,"writers") == 0) {
+                    scheduling_policy = RW_WRITERS_FIRST;
+                }
+                else if (strcmp(optarg, "none") == 0 ) {
+                    scheduling_policy = RW_NONE;
+                }
+                else {
+                    fprintf(stderr, "Invalid scheduling policy: %s. Available policies: none, readers, writers.\n", optarg);
+                    exit(EXIT_FAILURE);
+                }
+                break;
             case 'h':
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-c /path/to/config.json] [-p <policy>]\n",
@@ -560,6 +601,7 @@ int main(int argc, char* const* argv)
 
 
     printDbg("rw_policy: %d", rw_policy);
+    printDbg("sched policy: %d", scheduling_policy);
     if (version_flag) {
         printDbg("Needy Resources, version %s\n.Proiect pt SO2\nVersiune protocol needy: %u\nProfesori coordonatori: Florin-Teodor Fortiș, Diogen Babuc\nEchipa:$Name\nMembri:\n1.Alexandru Turculeț\n2.Mitoiu Bogdan Mitoiu\n3.Timeea Tătărușanu",SERVER_VERSION,NEEDY_PROTOCOL_VERSION);
         exit(EXIT_SUCCESS);

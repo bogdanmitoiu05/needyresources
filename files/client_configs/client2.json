@@ -2,7 +2,7 @@
   "requests": [
     {
       "type": "write",
-      "file_name": "f2.txt",
+      "file_name": "f1.txt",
       "content": "Client 2 wrote this",
       "mode": "W"
     }
