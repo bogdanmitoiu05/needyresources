@@ -107,7 +107,7 @@ int main(void) {
 
     json_t *clients = json_object_get(scenario_json, "clients");
     json_t *server_policy = json_object_get(scenario_json,"server_policy");
-    json_t *server_sched = json_object_get(scenario_json,"schedulin");
+    json_t *server_sched = json_object_get(scenario_json,"scheduling_policy");
     if (!json_is_string(server_policy)) {
         fprintf(stderr, "[BOOTSTRAP] No server policy set\n");
         json_decref(scenario_json);
