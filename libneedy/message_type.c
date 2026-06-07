@@ -20,6 +20,18 @@ needy_message_type needy_message_type_from_string(const char* str) {
     {
         return RESOURCE_RESPONSE;
     }
+    if (strcmp(str, "read_request") == 0)
+    {
+        return READ_REQUEST;
+    }
+    if (strcmp(str, "write_request") == 0)
+    {
+        return WRITE_REQUEST;
+    }
+    if (strcmp(str, "file_response") == 0)
+    {
+        return FILE_RESPONSE;
+    }
     return MESSAGE_TYPE_UNKNOWN;
 }
 char* needy_message_type_to_string(needy_message_type type) {
@@ -34,6 +46,12 @@ char* needy_message_type_to_string(needy_message_type type) {
         return fixed_strdup("client_finalize");
     case RESOURCE_RESPONSE:
         return fixed_strdup("resource_response");
+    case READ_REQUEST:
+        return fixed_strdup("read_request");
+    case WRITE_REQUEST:
+        return fixed_strdup("write_request");
+    case FILE_RESPONSE:
+        return fixed_strdup("file_response");
     default:
         fputs("needy_message_type_to_string: Invalid type", stderr);
         return NULL;

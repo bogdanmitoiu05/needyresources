@@ -6,6 +6,9 @@ typedef enum {
     SERVER_ACK, // ack conectare
     CLIENT_FINALIZE, // clientul a terminat
     RESOURCE_RESPONSE,
+    READ_REQUEST,
+    WRITE_REQUEST,
+    FILE_RESPONSE,
     N_TYPES, //truc -> valoarea se va actualiza automat în funcție de câte valori sunt înaintea sa
     MESSAGE_TYPE_UNKNOWN // -> invalid
 } needy_message_type;
