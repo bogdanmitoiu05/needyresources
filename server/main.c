@@ -261,32 +261,35 @@ void* writer_thread(void* args) {
     free(thread_args);
     return NULL;
 }
-int comp(const void *a, const void *b) {
-
-    needy_message_t* msg_a = (needy_message_t*)a;
-    needy_message_t* msg_b = (needy_message_t*)b;
-    if (msg_a->message_type == msg_b->message_type) {
-        return 0;
-    }
+void sort(needy_message_t* messages[]) {
+    needy_message_type ptype;
     if (scheduling_policy == RW_READERS_FIRST) {
-        if (msg_a->message_type == READ_REQUEST) {
-            return 1;
+        ptype = READ_REQUEST;
+    }
+    else {
+        ptype = WRITE_REQUEST;
+    }
+    for (int i = 0; i < RW_BUFF_SIZE; i++) {
+        if (messages[i] != NULL && messages[i]->message_type != ptype) {
+            for (int j = i+1; j < RW_BUFF_SIZE; j++) {
+                if (messages[j] != NULL && messages[j]->message_type == ptype) {
+                    needy_message_t* aux = messages[i];
+                    messages[i] = messages[j];
+                    messages[j] = aux;
+                }
+            }
         }
-        return -1;
     }
-    if (msg_a->message_type == WRITE_REQUEST) {
-        return 1;
-    }
-    return -1;
-
 }
 void process_file_requests(MQManager* mq_manager) {
     printDbg("Processing file requests");
     pthread_t thread_pool[RW_BUFF_SIZE];
     int thread_count = 0;
+    pthread_mutex_lock(&mutex_message);
     if (scheduling_policy != RW_NONE) {
-        qsort(read_write_buff, RW_BUFF_SIZE, sizeof(read_write_buff[0]), comp);
+        sort(read_write_buff);
     }
+    pthread_mutex_unlock(&mutex_message);
     for (int i = 0; i < RW_BUFF_SIZE; i++) {
         if (read_write_buff[i] != NULL) {
             thread_args_t* args = malloc(sizeof(thread_args_t));

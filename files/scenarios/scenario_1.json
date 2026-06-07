@@ -1,6 +1,6 @@
 {
-  "server_policy": "writers",
-  "scheduling_policy": "none",
+  "server_policy": "readers",
+  "scheduling_policy": "readers",
   "clients": [
     {
       "id": 1,
