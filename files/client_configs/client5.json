@@ -1,6 +1,8 @@
 {
-  "type": "write",
-  "file_name": "f2.txt",
-  "content": "Client 5 appended",
-  "mode": "A"
+  "requests": [
+    {
+      "type": "read",
+      "file_name": "f2.txt"
+    }
+  ]
 }

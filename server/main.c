@@ -63,7 +63,7 @@ typedef struct {
     MQManager *mq_manager;
     resource_manager* res_manager;
 } send_args_t;
-#define BUFF_SIZE 12
+#define BUFF_SIZE 6
 needy_message_t* share_buff[BUFF_SIZE];
 int read_head=0;
 int write_head=0;
@@ -72,7 +72,7 @@ int nr=0;
 pthread_cond_t bufferHasItems = PTHREAD_COND_INITIALIZER;
 pthread_cond_t bufferCanBeFilled = PTHREAD_COND_INITIALIZER;
 
-#define RW_BUFF_SIZE 1
+#define RW_BUFF_SIZE 6
 needy_message_t* read_write_buff[RW_BUFF_SIZE];
 int rw_read_head = 0;
 int rw_write_head = 0;
@@ -559,6 +559,7 @@ int main(int argc, char* const* argv)
     }
 
 
+    printDbg("rw_policy: %d", rw_policy);
     if (version_flag) {
         printDbg("Needy Resources, version %s\n.Proiect pt SO2\nVersiune protocol needy: %u\nProfesori coordonatori: Florin-Teodor Fortiș, Diogen Babuc\nEchipa:$Name\nMembri:\n1.Alexandru Turculeț\n2.Mitoiu Bogdan Mitoiu\n3.Timeea Tătărușanu",SERVER_VERSION,NEEDY_PROTOCOL_VERSION);
         exit(EXIT_SUCCESS);
@@ -594,11 +595,7 @@ int main(int argc, char* const* argv)
     mqd_t server_mq = mq_open(SERVER_QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &attr);
     if (server_mq == (mqd_t)-1) {
         perror("Server: Failed to open server queue");
-        pthread_mutex_destroy(&global_file_lock.rw_lock);
-        pthread_mutex_destroy(&global_file_lock.read_count_lock);
-        pthread_mutex_destroy(&global_file_lock.priority_mutex);
-        pthread_cond_destroy(&global_file_lock.can_read);
-        pthread_cond_destroy(&global_file_lock.can_write);
+        cleanup_locks();
         mq_unlink(SERVER_QUEUE_NAME);
         exit(EXIT_FAILURE);
     }

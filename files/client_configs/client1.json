@@ -5,10 +5,6 @@
       "file_name": "f1.txt",
       "content": "Client 1 wrote this",
       "mode": "W"
-    },
-    {
-      "type": "read",
-      "file_name": "f1.txt"
     }
   ]
 }

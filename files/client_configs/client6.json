@@ -1,6 +1,8 @@
 {
-  "type": "write",
-  "file_name": "f3.txt",
-  "content": "Client 6 overwrite",
-  "mode": "W"
+  "requests": [
+    {
+      "type": "read",
+      "file_name": "f3.txt"
+    }
+  ]
 }
