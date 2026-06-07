@@ -5,7 +5,7 @@
     "workingDirectory": "/IdeaProjects/needyresources/files/resources",
     "enableLiveUpdate": true,
     "maximumAllowedResources": 12,
-    "maximumClients": 2,
+    "maximumClients": 30,
     "typesOfResources": 3
   }
 }
