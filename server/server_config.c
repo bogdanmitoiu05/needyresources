@@ -4,7 +4,6 @@
 
 #include "server_config.h"
 #include <jansson.h>
-
 void server_config_destroy(server_config_t* this) {
     ENSURE_NOTNULL(this);
     if (this->workingDirectory)

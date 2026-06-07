@@ -588,6 +588,11 @@ int main(int argc, char* const* argv)
     mqd_t server_mq = mq_open(SERVER_QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &attr);
     if (server_mq == (mqd_t)-1) {
         perror("Server: Failed to open server queue");
+        pthread_mutex_destroy(&global_file_lock.rw_lock);
+        pthread_mutex_destroy(&global_file_lock.read_count_lock);
+        pthread_mutex_destroy(&global_file_lock.priority_mutex);
+        pthread_cond_destroy(&global_file_lock.can_read);
+        pthread_cond_destroy(&global_file_lock.can_write);
         mq_unlink(SERVER_QUEUE_NAME);
         exit(EXIT_FAILURE);
     }
