@@ -91,25 +91,11 @@ static void wait_for_client(pid_t pid, int client_id) {
 int main(void) {
     printf("[BOOTSTRAP] Starting beta scenario...\n");
 
-    char *server_argv[] = {
-        "/IdeaProjects/needyresources/cmake-build-debug/server/nr_server",
-        "-c",
-        "/IdeaProjects/needyresources/files/config.json",
-        NULL
-    };
 
-    printf("[BOOTSTRAP] Starting server...\n");
-    pid_t server_pid = start_process(server_argv);
-    if (server_pid <= 0) {
-    fprintf(stderr, "[BOOTSTRAP] Could not start server\n");
-    return EXIT_FAILURE;
-}
 
-    if (server_pid < 0) {
-        return EXIT_FAILURE;
-    }
 
-    sleep(SERVER_START_DELAY_SECONDS);
+
+
 
         json_error_t error;
     json_t *scenario_json = json_load_file(
@@ -126,7 +112,13 @@ int main(void) {
     }
 
     json_t *clients = json_object_get(scenario_json, "clients");
-
+    json_t *server_policy = json_object_get(scenario_json,"server_policy");
+    if (!json_is_string(server_policy)) {
+        fprintf(stderr, "[BOOTSTRAP] No server policy set\n");
+        json_decref(scenario_json);
+        return EXIT_FAILURE;
+    }
+    char *const server_policy_str = strdup(json_string_value(server_policy));
     if (!json_is_array(clients)) {
         fprintf(stderr, "[BOOTSTRAP] Invalid clients array\n");
         json_decref(scenario_json);
@@ -148,7 +140,22 @@ int main(void) {
 
     size_t index;
     json_t *client_json;
-
+    char *const server_argv[] = {
+        "/IdeaProjects/needyresources/cmake-build-debug/server/nr_server",
+        "-c",
+        "/IdeaProjects/needyresources/files/config.json",
+        "-p",
+        server_policy_str,
+        NULL
+    };
+    printf("[BOOTSTRAP] Starting server...\n");
+    pid_t server_pid = start_process(server_argv);
+    if (server_pid <= 0) {
+        fprintf(stderr, "[BOOTSTRAP] Could not start server\n");
+        return EXIT_FAILURE;
+    }
+    free(server_policy_str);
+    sleep(SERVER_START_DELAY_SECONDS);
     json_array_foreach(clients, index, client_json) {
 
         scenario[index].id =
@@ -198,9 +205,7 @@ int main(void) {
             fprintf(stderr,
             "[BOOTSTRAP] Failed to start client %d\n",
             scenario[index].id);
-}
-
-        
+        }
     }
 
     for (size_t i = 0; i < client_count; i++) {

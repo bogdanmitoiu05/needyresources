@@ -1,4 +1,5 @@
 {
+  "server_policy": "simultaneous",
   "clients": [
     {
       "id": 1,
