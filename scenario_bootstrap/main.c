@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <jansson.h>
 
-#define MAX_CLIENTS 30
+#define MAX_CLIENTS 10
 #define SERVER_START_DELAY_SECONDS 1
 #define CLIENT_TIMEOUT_SECONDS 120
 
